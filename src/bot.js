@@ -56,11 +56,11 @@ function getMainMenuKeyboard(hasActiveProcess = false) {
     inline_keyboard: []
   };
 
-  // TODO: Раскомментируйте после настройки HTTPS URL (см. TELEGRAM_WEB_APP.md)
-  // keyboard.inline_keyboard.push([{
-  //   text: '📱 Открыть приложение (оффлайн)',
-  //   web_app: { url: 'https://ВАШ_ДОМЕН/telegram-app.html' }
-  // }]);
+  // Web App для работы оффлайн
+  keyboard.inline_keyboard.push([{
+    text: '📱 Открыть PWA (работает оффлайн)',
+    web_app: { url: 'https://grachia.ru/telegram-app.html' }
+  }]);
 
   if (hasActiveProcess) {
     keyboard.inline_keyboard.push(
@@ -598,8 +598,63 @@ bot.on('message', async (msg) => {
   }
 });
 
+// Quick commands для быстрого доступа
+bot.onText(/\/quick(?:\s+(\d+))?/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const user = await db.getOrCreateUser(msg.from.id, msg.from.first_name);
+  const processId = match[1];
+
+  if (!processId) {
+    bot.sendMessage(chatId, '❌ Укажите номер процесса: /quick 1');
+    return;
+  }
+
+  const process = await db.getProcess(parseInt(processId));
+  if (!process) {
+    bot.sendMessage(chatId, '❌ Процесс не найден');
+    return;
+  }
+
+  const activeRecord = await db.getActiveRecord(user.id);
+  if (activeRecord) {
+    bot.sendMessage(chatId, '❌ У вас уже есть активный процесс. Завершите его сначала.');
+    return;
+  }
+
+  const recordId = await db.createRecord(user.id, process.id);
+  const state = { activeRecordId: recordId, processName: process.name };
+  userStates.set(user.id, state);
+
+  await bot.sendMessage(chatId, `✅ Процесс "${process.name}" запущен!\n\n⏱ Время пошло. Успешной работы!`);
+  await showMainMenu(chatId, user);
+});
+
+bot.onText(/\/done(?:\s+(.+))?/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const user = await db.getOrCreateUser(msg.from.id, msg.from.first_name);
+  const comment = match[1] || '';
+
+  const activeRecord = await db.getActiveRecord(user.id);
+  if (!activeRecord) {
+    bot.sendMessage(chatId, '❌ Нет активного процесса');
+    return;
+  }
+
+  await db.completeRecord(activeRecord.id, comment);
+  userStates.delete(user.id);
+
+  const duration = Math.floor((Date.now() - new Date(activeRecord.start_time).getTime()) / 1000);
+  await bot.sendMessage(chatId,
+    `✅ Процесс "${activeRecord.process_name}" завершен!\n\n` +
+    `⏱ Время работы: ${formatDuration(duration)}\n` +
+    (comment ? `💬 Комментарий: ${comment}` : '')
+  );
+  await showMainMenu(chatId, user);
+});
+
 console.log('🤖 Бот запущен и готов к работе!');
 console.log('📱 Все управление через инлайн кнопки');
+console.log('⚡️ Quick commands: /quick [номер], /done [комментарий]');
 console.log('💾 Оффлайн режим: данные сохраняются в SQLite локально');
 
 // Обработка ошибок

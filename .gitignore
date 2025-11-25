@@ -1,12 +1,35 @@
+# Dependencies
 node_modules/
+
+# Environment
 .env
+
+# Logs
 *.log
+bot.log
+
+# Database
 data/
+
+# Uploads
 photos/
+
+# Archives
 *.tar.gz
+*.zip
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Editors
 *.swp
 *.swo
 *~
 .vscode/
 .idea/
+
+# Deployment scripts (archived)
+*.expect
+*.sh
+deploy*.log

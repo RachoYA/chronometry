@@ -33,7 +33,15 @@
       "Bash(scp get-ssl-simple.sh racho@89.232.184.218:~/)",
       "Bash(expect execute-ssl-simple.expect:*)",
       "Bash(expect:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote remove:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(./git-deploy.expect)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
