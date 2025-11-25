@@ -1,0 +1,241 @@
+#!/usr/bin/expect -f
+
+set timeout 900
+set password "cv7AE5HpRC"
+
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect "password:"
+send "$password\r"
+
+expect "*$*"
+
+# Create the SSL script directly on the server
+send "cat > ~/get-ssl-simple.sh << 'EOFSCRIPT'\r"
+expect ">"
+
+send "#!/bin/bash\r"
+expect ">"
+
+send "echo \"🔐 Получение SSL сертификата только для grachia.ru (без www)...\"\r"
+expect ">"
+
+send "# Останавливаем Nginx\r"
+expect ">"
+
+send "echo \"1. Остановка Nginx...\"\r"
+expect ">"
+
+send "sudo systemctl stop nginx\r"
+expect ">"
+
+send "# Получаем сертификат только для grachia.ru\r"
+expect ">"
+
+send "echo \"2. Получение сертификата...\"\r"
+expect ">"
+
+send "sudo certbot certonly --standalone -d grachia.ru --non-interactive --agree-tos --email admin@grachia.ru\r"
+expect ">"
+
+send "if \[ \$? -eq 0 \]; then\r"
+expect ">"
+
+send "    echo \"✅ Сертификат получен!\"\r"
+expect ">"
+
+send "    # Создаем конфигурацию\r"
+expect ">"
+
+send "    echo \"3. Создание конфигурации...\"\r"
+expect ">"
+
+send "    sudo tee /etc/nginx/sites-available/chronometry > /dev/null <<'EOF'\r"
+expect ">"
+
+send "server {\r"
+expect ">"
+
+send "    listen 80;\r"
+expect ">"
+
+send "    server_name grachia.ru;\r"
+expect ">"
+
+send "    return 301 https://\$server_name\$request_uri;\r"
+expect ">"
+
+send "}\r"
+expect ">"
+
+send "server {\r"
+expect ">"
+
+send "    listen 443 ssl http2;\r"
+expect ">"
+
+send "    server_name grachia.ru;\r"
+expect ">"
+
+send "    ssl_certificate /etc/letsencrypt/live/grachia.ru/fullchain.pem;\r"
+expect ">"
+
+send "    ssl_certificate_key /etc/letsencrypt/live/grachia.ru/privkey.pem;\r"
+expect ">"
+
+send "    ssl_protocols TLSv1.2 TLSv1.3;\r"
+expect ">"
+
+send "    ssl_ciphers HIGH:!aNULL:!MD5;\r"
+expect ">"
+
+send "    ssl_prefer_server_ciphers on;\r"
+expect ">"
+
+send "    location / {\r"
+expect ">"
+
+send "        proxy_pass http://localhost:5000;\r"
+expect ">"
+
+send "        proxy_http_version 1.1;\r"
+expect ">"
+
+send "        proxy_set_header Upgrade \$http_upgrade;\r"
+expect ">"
+
+send "        proxy_set_header Connection 'upgrade';\r"
+expect ">"
+
+send "        proxy_set_header Host \$host;\r"
+expect ">"
+
+send "        proxy_set_header X-Real-IP \$remote_addr;\r"
+expect ">"
+
+send "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\r"
+expect ">"
+
+send "        proxy_set_header X-Forwarded-Proto \$scheme;\r"
+expect ">"
+
+send "        proxy_cache_bypass \$http_upgrade;\r"
+expect ">"
+
+send "    }\r"
+expect ">"
+
+send "    client_max_body_size 10M;\r"
+expect ">"
+
+send "    access_log /var/log/nginx/chronometry_access.log;\r"
+expect ">"
+
+send "    error_log /var/log/nginx/chronometry_error.log;\r"
+expect ">"
+
+send "}\r"
+expect ">"
+
+send "EOF\r"
+expect ">"
+
+send "    sudo ln -sf /etc/nginx/sites-available/chronometry /etc/nginx/sites-enabled/\r"
+expect ">"
+
+send "    if sudo nginx -t; then\r"
+expect ">"
+
+send "        sudo systemctl start nginx\r"
+expect ">"
+
+send "        echo \"\"\r"
+expect ">"
+
+send "        echo \"🎉 ДЕПЛОЙ ЗАВЕРШЕН!\"\r"
+expect ">"
+
+send "        echo \"\"\r"
+expect ">"
+
+send "        echo \"🌐 Сайт: https://grachia.ru\"\r"
+expect ">"
+
+send "        echo \"📱 Telegram Web App: https://grachia.ru/telegram-app.html\"\r"
+expect ">"
+
+send "        echo \"\"\r"
+expect ">"
+
+send "        sleep 2\r"
+expect ">"
+
+send "        echo \"📋 Проверка:\"\r"
+expect ">"
+
+send "        curl -I https://grachia.ru | head -10\r"
+expect ">"
+
+send "    else\r"
+expect ">"
+
+send "        sudo systemctl start nginx\r"
+expect ">"
+
+send "    fi\r"
+expect ">"
+
+send "else\r"
+expect ">"
+
+send "    sudo systemctl start nginx\r"
+expect ">"
+
+send "fi\r"
+expect ">"
+
+send "EOFSCRIPT\r"
+
+expect "*$*"
+
+send "chmod +x ~/get-ssl-simple.sh\r"
+expect "*$*"
+
+send "bash ~/get-ssl-simple.sh\r"
+
+# Обработка всех sudo запросов
+expect {
+    "*пароль для racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "*password for racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "Сертификат получен!" {
+        exp_continue
+    }
+    "ДЕПЛОЙ ЗАВЕРШЕН!" {
+        exp_continue
+    }
+    "HTTP/2 200" {
+        exp_continue
+    }
+    "*$*" {
+        exp_continue
+    }
+    timeout {
+        send "\r"
+        exp_continue
+    }
+}
+
+send "\r"
+expect "*$*"
+
+send "pm2 status\r"
+expect "*$*"
+
+send "exit\r"
+expect eof

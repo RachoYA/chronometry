@@ -1,0 +1,81 @@
+#!/usr/bin/expect -f
+
+set timeout 900
+set password "cv7AE5HpRC"
+
+# Upload file
+spawn scp get-ssl-simple.sh racho@89.232.184.218:~/
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+
+expect {
+    eof {
+        puts "Upload complete"
+    }
+    timeout {
+        puts "Upload timeout"
+    }
+}
+
+# Now execute via SSH
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect "password:"
+send "$password\r"
+
+expect "*$*"
+
+send "chmod +x ~/get-ssl-simple.sh\r"
+expect "*$*"
+
+send "bash ~/get-ssl-simple.sh\r"
+
+# Обработка всех sudo запросов и вывода
+expect {
+    "*пароль для racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "*password for racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "Сертификат получен!" {
+        puts "\n✅ Certificate obtained!\n"
+        exp_continue
+    }
+    "ДЕПЛОЙ ЗАВЕРШЕН!" {
+        puts "\n🎉 Deployment complete!\n"
+        exp_continue
+    }
+    "HTTP/2 200" {
+        puts "\n✅ HTTPS working!\n"
+        exp_continue
+    }
+    "*$*" {
+        exp_continue
+    }
+    timeout {
+        send "\r"
+        exp_continue
+    }
+}
+
+send "\r"
+expect "*$*"
+
+send "echo ''\r"
+expect "*$*"
+
+send "echo '=== PM2 Status ==='\r"
+expect "*$*"
+
+send "pm2 status\r"
+expect "*$*"
+
+send "exit\r"
+expect eof

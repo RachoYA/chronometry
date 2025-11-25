@@ -1,0 +1,60 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password "cv7AE5HpRC"
+
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect "password:"
+send "$password\r"
+
+expect "*$*"
+
+send "echo '=== Поиск SSL сертификатов ==='\r"
+expect "*$*"
+
+send "sudo find /etc -name '*.pem' -o -name '*.crt' -o -name '*.key' 2>/dev/null | grep -i grachia\r"
+
+expect {
+    "*пароль для racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "*$*" {
+        send "\r"
+    }
+    timeout {
+        send "\r"
+    }
+}
+
+expect "*$*"
+send "echo ''\r"
+expect "*$*"
+
+send "echo '=== Все сертификаты в /etc/ssl ==='\r"
+expect "*$*"
+
+send "sudo ls -la /etc/ssl/certs/ | grep -i '\\.crt$' | head -20\r"
+expect "*$*"
+
+send "echo ''\r"
+expect "*$*"
+
+send "echo '=== Проверка существующих конфигураций Nginx ==='\r"
+expect "*$*"
+
+send "sudo ls -la /etc/nginx/sites-enabled/\r"
+expect "*$*"
+
+send "echo ''\r"
+expect "*$*"
+
+send "echo '=== Существующие виртуальные хосты ==='\r"
+expect "*$*"
+
+send "sudo nginx -T 2>/dev/null | grep 'server_name' | head -10\r"
+expect "*$*"
+
+send "exit\r"
+expect eof

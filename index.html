@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Микрорайон</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-layer">
+            <div id="top-bar">
+                <div class="stat-box">
+                    <span class="label">Очки</span>
+                    <span id="score-display" class="value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">Ход</span>
+                    <span id="turn-display" class="value">1</span>
+                </div>
+                <div class="stat-box" style="cursor: pointer;" onclick="window.rotateCamera()">
+                    <span class="label">Камера</span>
+                    <span class="value">↻</span>
+                </div>
+            </div>
+
+            <div id="bottom-bar">
+                <div id="hand-container">
+                    <!-- Cards will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/game/BuildingDefs.js"></script>
+    <script src="src/core/Grid.js"></script>
+    <script src="src/view/AssetManager.js"></script>
+    <script src="src/simulation/TrafficSystem.js"></script>
+    <script src="src/view/Renderer.js"></script>
+    <script src="src/game/CardManager.js"></script>
+    <script src="src/game/GameManager.js"></script>
+    <script src="src/core/GameLoop.js"></script>
+    <script src="src/main.js"></script>
+</body>
+
+</html>

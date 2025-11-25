@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.log
+data/
+photos/
+*.tar.gz
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

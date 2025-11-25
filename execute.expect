@@ -1,0 +1,33 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect {
+    "password:" {
+        send "cv7AE5HpRC\r"
+    }
+}
+
+expect {
+    "*$*" {
+        send "chmod +x ~/deploy-remote.sh\r"
+    }
+}
+
+expect {
+    "*$*" {
+        send "bash ~/deploy-remote.sh\r"
+    }
+}
+
+expect {
+    "ВАЖНО: Теперь настройте Nginx!" {
+        send "exit\r"
+    }
+    timeout {
+        send "exit\r"
+    }
+    eof
+}

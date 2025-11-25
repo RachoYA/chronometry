@@ -1,0 +1,47 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+set password "cv7AE5HpRC"
+
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+
+expect "*$*"
+
+send "chmod +x ~/configure-nginx.sh\r"
+expect "*$*"
+
+send "bash ~/configure-nginx.sh\r"
+
+expect {
+    "*пароль для racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "*password for racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "Деплой завершен!" {
+        send "\r"
+    }
+    "Ошибка в конфигурации Nginx!" {
+        send "\r"
+    }
+    timeout {
+        send "\r"
+    }
+}
+
+expect "*$*"
+send "curl -I https://grachia.ru\r"
+
+expect "*$*"
+send "exit\r"
+
+expect eof

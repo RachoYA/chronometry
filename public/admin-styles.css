@@ -1,0 +1,751 @@
+/* ==================== АДМИН-ПАНЕЛЬ - UNIFIED DESIGN ==================== */
+
+/* Все CSS переменные наследуются из styles.css для полной согласованности */
+
+.admin-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--md-space-xl);
+    background: var(--md-background);
+    min-height: 100vh;
+}
+
+/* ==================== ХЕДЕР АДМИНКИ ==================== */
+
+.admin-header {
+    background: linear-gradient(135deg,
+        var(--md-primary) 0%,
+        var(--md-secondary) 50%,
+        var(--md-tertiary) 100%);
+    color: var(--md-on-primary);
+    padding: var(--md-space-3xl) var(--md-space-xl);
+    margin: calc(var(--md-space-xl) * -1);
+    margin-bottom: var(--md-space-2xl);
+    border-radius: 0 0 var(--md-radius-2xl) var(--md-radius-2xl);
+    box-shadow: var(--md-elevation-4);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 40%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+    animation: rotate 30s linear infinite;
+}
+
+.admin-header h1 {
+    font-size: var(--md-text-4xl);
+    font-weight: 800;
+    margin-bottom: var(--md-space-sm);
+    letter-spacing: -1px;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-header p {
+    font-size: var(--md-text-lg);
+    opacity: 0.95;
+    font-weight: 500;
+    position: relative;
+    z-index: 1;
+}
+
+/* ==================== ТАБЫ ==================== */
+
+.tabs {
+    display: flex;
+    gap: var(--md-space-sm);
+    margin-bottom: var(--md-space-2xl);
+    background: var(--md-surface);
+    padding: var(--md-space-sm);
+    border-radius: var(--md-radius-xl);
+    box-shadow: var(--md-elevation-2);
+}
+
+.tab {
+    padding: var(--md-space-md) var(--md-space-xl);
+    cursor: pointer;
+    border-radius: var(--md-radius-lg);
+    font-weight: 700;
+    font-size: var(--md-text-base);
+    color: var(--md-on-surface-variant);
+    transition: all var(--md-transition-base);
+    position: relative;
+    flex: 1;
+    text-align: center;
+    border: 2px solid transparent;
+}
+
+.tab:hover {
+    background: var(--md-surface-variant);
+    color: var(--md-on-surface);
+    transform: translateY(-2px);
+}
+
+.tab.active {
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    color: var(--md-on-primary);
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(0);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn var(--md-transition-base);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ==================== СЕТКА ПРОЦЕССОВ ==================== */
+
+#processes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--md-space-xl);
+}
+
+.process-card {
+    background: var(--md-surface);
+    border-radius: var(--md-radius-xl);
+    padding: var(--md-space-xl);
+    box-shadow: var(--md-elevation-1);
+    cursor: pointer;
+    transition: all var(--md-transition-base);
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.process-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--md-primary), var(--md-secondary), var(--md-tertiary));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--md-transition-base);
+}
+
+.process-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--md-elevation-4);
+    border-color: var(--md-primary-light);
+}
+
+.process-card:hover::before {
+    transform: scaleX(1);
+}
+
+.process-card:active {
+    transform: translateY(-4px) scale(0.98);
+}
+
+.process-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--md-space-lg);
+}
+
+.process-card-title {
+    font-size: var(--md-text-xl);
+    font-weight: 800;
+    color: var(--md-on-surface);
+    margin-bottom: var(--md-space-xs);
+    line-height: 1.2;
+}
+
+.process-card-category {
+    display: inline-block;
+    padding: var(--md-space-xs) var(--md-space-md);
+    border-radius: var(--md-radius-full);
+    font-size: var(--md-text-xs);
+    font-weight: 800;
+    margin-bottom: var(--md-space-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.process-card-steps {
+    background: linear-gradient(135deg, var(--md-primary-lighter), var(--md-primary-light));
+    color: var(--md-primary-dark);
+    padding: var(--md-space-md);
+    border-radius: var(--md-radius-md);
+    font-size: var(--md-text-sm);
+    margin-top: var(--md-space-lg);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--md-space-sm);
+}
+
+.btn-edit,
+.btn-delete {
+    padding: var(--md-space-sm) var(--md-space-md);
+    border: none;
+    border-radius: var(--md-radius-md);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--md-transition-fast);
+    font-size: var(--md-text-sm);
+    box-shadow: var(--md-elevation-1);
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, var(--md-warning), var(--md-warning-dark));
+    color: var(--md-on-warning);
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, var(--md-warning-dark), #E65100);
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(-2px);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, var(--md-error), var(--md-error-dark));
+    color: var(--md-on-error);
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, var(--md-error-dark), #B71C1C);
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(-2px);
+}
+
+/* ==================== FLOATING ACTION BUTTON ==================== */
+
+.btn-add {
+    position: fixed;
+    bottom: var(--md-space-2xl);
+    right: var(--md-space-2xl);
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    color: var(--md-on-primary);
+    border-radius: var(--md-radius-full);
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    box-shadow: var(--md-elevation-5);
+    transition: all var(--md-transition-base);
+    z-index: var(--md-z-fixed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-add::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: var(--md-radius-full);
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    opacity: 0.3;
+    filter: blur(8px);
+    z-index: -1;
+    transition: all var(--md-transition-base);
+}
+
+.btn-add:hover {
+    transform: scale(1.15) rotate(90deg);
+    box-shadow: 0 20px 40px rgba(30, 136, 229, 0.4);
+}
+
+.btn-add:hover::before {
+    opacity: 0.5;
+    filter: blur(12px);
+}
+
+.btn-add:active {
+    transform: scale(1.05) rotate(90deg);
+}
+
+/* ==================== МОДАЛЬНОЕ ОКНО ==================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--md-z-modal-backdrop);
+    padding: var(--md-space-xl);
+}
+
+.modal-overlay.active {
+    display: flex;
+    animation: fadeIn var(--md-transition-base);
+}
+
+.modal {
+    background: var(--md-surface);
+    border-radius: var(--md-radius-2xl);
+    padding: var(--md-space-2xl);
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--md-elevation-5);
+    animation: scaleIn var(--md-transition-base);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal::-webkit-scrollbar {
+    width: 10px;
+}
+
+.modal::-webkit-scrollbar-track {
+    background: var(--md-surface-variant);
+    border-radius: var(--md-radius-sm);
+}
+
+.modal::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--md-primary), var(--md-secondary));
+    border-radius: var(--md-radius-sm);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--md-space-2xl);
+    padding-bottom: var(--md-space-lg);
+    border-bottom: 2px solid var(--md-surface-variant);
+}
+
+.modal-title {
+    font-size: var(--md-text-3xl);
+    font-weight: 800;
+    color: var(--md-on-surface);
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-header button {
+    background: var(--md-surface-variant);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--md-radius-full);
+    font-size: var(--md-text-2xl);
+    cursor: pointer;
+    transition: all var(--md-transition-fast);
+    color: var(--md-on-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-header button:hover {
+    background: var(--md-error);
+    color: var(--md-on-error);
+    transform: rotate(90deg) scale(1.1);
+}
+
+/* ==================== ФОРМЫ ==================== */
+
+.form-group {
+    margin-bottom: var(--md-space-xl);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--md-space-sm);
+    font-weight: 700;
+    color: var(--md-on-surface);
+    font-size: var(--md-text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: var(--md-space-md) var(--md-space-lg);
+    border: 2px solid var(--md-surface-variant);
+    border-radius: var(--md-radius-lg);
+    font-size: var(--md-text-base);
+    font-family: inherit;
+    background: var(--md-surface-variant);
+    color: var(--md-on-surface);
+    transition: all var(--md-transition-base);
+    font-weight: 600;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: var(--md-on-surface-variant);
+    font-weight: 500;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--md-primary);
+    background: var(--md-surface);
+    box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.12);
+}
+
+.form-checkbox {
+    width: 22px;
+    height: 22px;
+    margin-right: var(--md-space-md);
+    cursor: pointer;
+    accent-color: var(--md-primary);
+}
+
+/* ==================== ШАГИ В МОДАЛЬНОМ ОКНЕ ==================== */
+
+#steps-section {
+    background: linear-gradient(135deg, var(--md-surface-tint), var(--md-surface-container));
+    padding: var(--md-space-xl);
+    border-radius: var(--md-radius-xl);
+    margin-top: var(--md-space-xl);
+    border: 2px solid var(--md-surface-variant);
+}
+
+#steps-section h3 {
+    color: var(--md-primary);
+    margin-bottom: var(--md-space-lg);
+    font-size: var(--md-text-xl);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: var(--md-space-sm);
+}
+
+.steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-space-md);
+}
+
+.step-item {
+    background: var(--md-surface);
+    padding: var(--md-space-lg);
+    border-radius: var(--md-radius-lg);
+    display: flex;
+    gap: var(--md-space-lg);
+    box-shadow: var(--md-elevation-1);
+    animation: slideInLeft var(--md-transition-base);
+    border: 2px solid transparent;
+    transition: all var(--md-transition-fast);
+}
+
+.step-item:hover {
+    border-color: var(--md-primary-light);
+    box-shadow: var(--md-elevation-2);
+}
+
+.step-number {
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    color: var(--md-on-primary);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--md-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: var(--md-text-base);
+    flex-shrink: 0;
+    box-shadow: var(--md-elevation-2);
+}
+
+.step-item button {
+    background: linear-gradient(135deg, var(--md-error), var(--md-error-dark));
+    color: var(--md-on-error);
+    border: none;
+    padding: var(--md-space-sm) var(--md-space-lg);
+    border-radius: var(--md-radius-md);
+    cursor: pointer;
+    font-weight: 700;
+    font-size: var(--md-text-sm);
+    transition: all var(--md-transition-fast);
+    box-shadow: var(--md-elevation-1);
+}
+
+.step-item button:hover {
+    background: linear-gradient(135deg, var(--md-error-dark), #B71C1C);
+    transform: scale(1.05);
+    box-shadow: var(--md-elevation-3);
+}
+
+/* ==================== КНОПКИ ФОРМЫ ==================== */
+
+.btn-group {
+    display: flex;
+    gap: var(--md-space-md);
+    margin-top: var(--md-space-2xl);
+}
+
+.btn {
+    flex: 1;
+    padding: var(--md-space-lg) var(--md-space-xl);
+    border: none;
+    border-radius: var(--md-radius-lg);
+    font-size: var(--md-text-base);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--md-transition-base);
+    box-shadow: var(--md-elevation-1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: translate(-50%, -50%);
+    transition: width var(--md-transition-base), height var(--md-transition-base);
+}
+
+.btn:active::before {
+    width: 400px;
+    height: 400px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    color: var(--md-on-primary);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--md-primary-dark), var(--md-secondary-dark));
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--md-surface-variant);
+    color: var(--md-on-surface);
+    border: 2px solid var(--md-surface-variant);
+}
+
+.btn-secondary:hover {
+    background: var(--md-on-surface-variant);
+    color: var(--md-surface);
+    box-shadow: var(--md-elevation-2);
+    transform: translateY(-2px);
+}
+
+/* ==================== КАТЕГОРИИ ==================== */
+
+#categories-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--md-space-lg);
+}
+
+.card {
+    background: var(--md-surface);
+    border-radius: var(--md-radius-xl);
+    padding: var(--md-space-xl);
+    box-shadow: var(--md-elevation-1);
+    transition: all var(--md-transition-base);
+    border: 2px solid transparent;
+}
+
+.card:hover {
+    box-shadow: var(--md-elevation-3);
+    transform: translateY(-4px);
+    border-color: var(--md-primary-light);
+}
+
+/* ==================== ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ ==================== */
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--md-surface);
+    border-radius: var(--md-radius-xl);
+    overflow: hidden;
+    box-shadow: var(--md-elevation-2);
+}
+
+thead {
+    background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+    color: var(--md-on-primary);
+}
+
+thead th {
+    padding: var(--md-space-lg) var(--md-space-xl);
+    text-align: left;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: var(--md-text-sm);
+    letter-spacing: 0.5px;
+}
+
+tbody tr {
+    border-bottom: 1px solid var(--md-surface-variant);
+    transition: all var(--md-transition-fast);
+}
+
+tbody tr:hover {
+    background: var(--md-surface-tint);
+    transform: scale(1.01);
+}
+
+tbody tr:last-child {
+    border-bottom: none;
+}
+
+tbody td {
+    padding: var(--md-space-lg) var(--md-space-xl);
+    color: var(--md-on-surface);
+    font-weight: 600;
+}
+
+select {
+    padding: var(--md-space-sm) var(--md-space-md);
+    border: 2px solid var(--md-surface-variant);
+    border-radius: var(--md-radius-md);
+    background: var(--md-surface-variant);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--md-transition-fast);
+    font-weight: 600;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--md-primary);
+    box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.12);
+}
+
+select:hover {
+    background: var(--md-surface);
+}
+
+/* ==================== АДАПТИВНОСТЬ ==================== */
+
+@media (max-width: 768px) {
+    .admin-container {
+        padding: var(--md-space-md);
+    }
+
+    .admin-header {
+        padding: var(--md-space-xl);
+        margin: calc(var(--md-space-md) * -1);
+        margin-bottom: var(--md-space-xl);
+        border-radius: 0 0 var(--md-radius-xl) var(--md-radius-xl);
+    }
+
+    .admin-header h1 {
+        font-size: var(--md-text-2xl);
+    }
+
+    .admin-header p {
+        font-size: var(--md-text-base);
+    }
+
+    #processes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        flex-direction: column;
+    }
+
+    .btn-add {
+        bottom: var(--md-space-lg);
+        right: var(--md-space-lg);
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+
+    .modal {
+        padding: var(--md-space-xl);
+        border-radius: var(--md-radius-xl);
+    }
+
+    .modal-title {
+        font-size: var(--md-text-2xl);
+    }
+
+    table {
+        font-size: var(--md-text-sm);
+    }
+
+    thead th,
+    tbody td {
+        padding: var(--md-space-md);
+    }
+
+    #categories-list {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+}
+
+@media (min-width: 1400px) {
+    #processes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    }
+}
+
+/* ==================== АНИМАЦИИ ==================== */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "store-chronometry-bot",
+  "version": "1.0.0",
+  "description": "Telegram бот для хронометража процессов в продуктовом магазине",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dev": "nodemon src/bot.js",
+    "web": "node server.js",
+    "web:dev": "nodemon server.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "chronometry",
+    "store",
+    "offline"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

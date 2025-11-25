@@ -1,0 +1,48 @@
+#!/usr/bin/expect -f
+
+set timeout 900
+set password "cv7AE5HpRC"
+
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect "password:"
+send "$password\r"
+
+expect "*$*"
+
+send "chmod +x ~/get-ssl-final.sh\r"
+expect "*$*"
+
+send "bash ~/get-ssl-final.sh\r"
+
+# Обработка sudo запросов
+expect {
+    "*пароль для racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "*password for racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "ДЕПЛОЙ ЗАВЕРШЕН УСПЕШНО!" {
+        exp_continue
+    }
+    "*$*" {
+        exp_continue
+    }
+    "HTTP/2 200" {
+        exp_continue
+    }
+    timeout {
+        send "\r"
+    }
+}
+
+expect "*$*"
+send "pm2 logs chronometry-bot --lines 3 --nostream\r"
+
+expect "*$*"
+send "exit\r"
+
+expect eof

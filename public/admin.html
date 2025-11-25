@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - Управление процессами</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/admin-styles.css">
+    <style>
+        .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .admin-header { background: #2196F3; color: white; padding: 20px; margin: -20px -20px 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 12px 24px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab.active { border-bottom-color: #2196F3; color: #2196F3; font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .process-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .process-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; }
+        .process-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .process-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+        .process-card-title { font-size: 18px; font-weight: 600; }
+        .process-card-category { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 8px; }
+        .process-card-steps { font-size: 14px; color: #757575; margin-top: 8px; }
+        .steps-list { margin-top: 12px; }
+        .step-item { padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .step-number { background: #2196F3; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 24px; font-weight: 600; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2196F3; }
+        .form-checkbox { width: auto; margin-right: 8px; }
+        .btn-add { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #2196F3; color: white; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(33,150,243,0.4); transition: all 0.3s; }
+        .btn-add:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(33,150,243,0.5); }
+        .btn-delete { background: #F44336; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-edit { background: #FF9800; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>Админ-панель управления процессами</h1>
+            <p>Создавайте и редактируйте процессы с последовательными шагами</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="processes">Процессы</div>
+            <div class="tab" data-tab="categories">Категории</div>
+            <div class="tab" data-tab="users">Пользователи</div>
+        </div>
+
+        <!-- Вкладка: Процессы -->
+        <div id="tab-processes" class="tab-content active">
+            <div id="processes-grid" class="process-grid">
+                <!-- Процессы загружаются динамически -->
+            </div>
+        </div>
+
+        <!-- Вкладка: Категории -->
+        <div id="tab-categories" class="tab-content">
+            <div id="categories-list">
+                <!-- Категории загружаются динамически -->
+            </div>
+        </div>
+
+        <!-- Вкладка: Пользователи -->
+        <div id="tab-users" class="tab-content">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 12px; text-align: left;">ID</th>
+                        <th style="padding: 12px; text-align: left;">Имя</th>
+                        <th style="padding: 12px; text-align: left;">Telegram ID</th>
+                        <th style="padding: 12px; text-align: left;">Роль</th>
+                        <th style="padding: 12px; text-align: left;">Дата регистрации</th>
+                        <th style="padding: 12px; text-align: left;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <!-- Пользователи загружаются динамически -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Кнопка добавления -->
+        <button class="btn-add" id="btn-add-process">+</button>
+    </div>
+
+    <!-- Модальное окно: Создание/Редактирование процесса -->
+    <div id="process-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="process-modal-title">Создать процесс</h2>
+                <button onclick="closeProcessModal()" style="border: none; background: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <form id="process-form">
+                <input type="hidden" id="process-id">
+
+                <div class="form-group">
+                    <label class="form-label">Название процесса *</label>
+                    <input type="text" id="process-name" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea id="process-description" class="form-textarea" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Категория</label>
+                    <select id="process-category" class="form-select">
+                        <option value="">Без категории</option>
+                        <!-- Категории загружаются динамически -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Ожидаемая длительность (минуты)</label>
+                    <input type="number" id="process-duration" class="form-input" min="0" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Приоритет (0-10)</label>
+                    <input type="number" id="process-priority" class="form-input" min="0" max="10" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="process-sequential" class="form-checkbox">
+                        Последовательный процесс (с шагами)
+                    </label>
+                </div>
+
+                <div id="steps-section" style="display: none; margin-top: 20px;">
+                    <h3 style="margin-bottom: 12px;">Шаги процесса</h3>
+                    <div id="steps-list" class="steps-list"></div>
+                    <button type="button" onclick="addStep()" class="btn btn-secondary" style="width: 100%; margin-top: 12px;">+ Добавить шаг</button>
+                </div>
+
+                <div class="btn-group" style="margin-top: 20px;">
+                    <button type="button" onclick="closeProcessModal()" class="btn btn-secondary">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/admin.js"></script>
+</body>
+</html>

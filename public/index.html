@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Хронометраж магазина</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Статус подключения -->
+        <div id="connection-status" class="offline-banner hidden">
+            <span>⚠️ Оффлайн режим</span>
+            <small>Данные будут синхронизированы при появлении интернета</small>
+        </div>
+
+        <!-- Экран авторизации -->
+        <div id="auth-screen" class="screen">
+            <div class="container">
+                <div class="logo">📊</div>
+                <h1>Хронометраж магазина</h1>
+                <p>Введите ваше имя для начала работы</p>
+                <input type="text" id="username-input" placeholder="Ваше имя" class="input">
+                <button id="login-btn" class="btn btn-primary">Войти</button>
+            </div>
+        </div>
+
+        <!-- Главный экран -->
+        <div id="main-screen" class="screen hidden">
+            <!-- Хедер -->
+            <header class="header">
+                <div class="header-content">
+                    <h2 id="user-greeting">Привет, Пользователь</h2>
+                    <button id="logout-btn" class="btn-icon">🚪</button>
+                </div>
+            </header>
+
+            <!-- Активный процесс -->
+            <div id="active-process" class="card hidden">
+                <div class="card-header">
+                    <h3>⏱ Текущий процесс</h3>
+                </div>
+                <div class="card-body">
+                    <div class="process-info">
+                        <div class="process-name" id="active-process-name">—</div>
+                        <div class="process-time" id="active-process-time">00:00:00</div>
+                        <div class="process-started">Начат: <span id="active-process-started">—</span></div>
+                    </div>
+                    <div class="btn-group">
+                        <button id="add-photo-btn" class="btn btn-secondary">📷 Добавить фото</button>
+                        <button id="stop-process-btn" class="btn btn-danger">⏹ Завершить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Контейнер для шагов (НОВОЕ) -->
+            <div id="steps-container" class="card hidden">
+                <!-- Шаги загружаются динамически -->
+            </div>
+
+            <!-- Список процессов -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📋 Начать работу</h3>
+                </div>
+                <div class="card-body">
+                    <div id="process-list" class="process-list">
+                        <!-- Процессы загружаются динамически -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 Статистика за сегодня</h3>
+                </div>
+                <div class="card-body">
+                    <div id="stats-today" class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-tasks">0</div>
+                            <div class="stat-label">Задач</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-time">0ч 0м</div>
+                            <div class="stat-label">Время</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="stat-photos">0</div>
+                            <div class="stat-label">Фото</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- История -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📜 История</h3>
+                </div>
+                <div class="card-body">
+                    <div id="history-list" class="history-list">
+                        <!-- История загружается динамически -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопка синхронизации -->
+            <div class="sync-section">
+                <button id="sync-btn" class="btn btn-sync" disabled>
+                    <span id="sync-status">✅ Синхронизировано</span>
+                </button>
+                <div id="pending-count" class="hidden">
+                    Ожидает синхронизации: <span id="pending-number">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для завершения процесса -->
+    <div id="finish-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>📝 Завершение работы</h3>
+            <p><strong id="finish-process-name"></strong></p>
+            <p>Длительность: <span id="finish-duration"></span></p>
+            <textarea id="comment-input" class="textarea" placeholder="Добавьте комментарий (необязательно)" rows="4"></textarea>
+            <div class="btn-group">
+                <button id="cancel-finish-btn" class="btn btn-secondary">Отмена</button>
+                <button id="confirm-finish-btn" class="btn btn-primary">Завершить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрытый input для фото -->
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;">
+
+    <script src="/app.js"></script>
+</body>
+</html>

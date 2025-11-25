@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm start)",
+      "Bash(npm install:*)",
+      "Bash(npm run web:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(PORT=4000 npm run web:*)",
+      "Bash(node:*)",
+      "Bash(killall:*)",
+      "Bash(pkill:*)",
+      "Bash(sqlite3:*)",
+      "Bash(qlmanage:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(ssh:*)",
+      "Bash(tar:*)",
+      "Bash(sshpass -p 'cv7AE5HpRC' scp:*)",
+      "Bash(brew install:*)",
+      "Bash(chmod:*)",
+      "Bash(./upload.expect:*)",
+      "Bash(./execute.expect)",
+      "Bash(tee:*)",
+      "Bash(./execute2.expect)",
+      "Bash(./execute-nginx.expect)",
+      "Bash(./find-ssl.expect)",
+      "Bash(./execute-ssl.expect)",
+      "Bash(timeout 900:*)",
+      "Bash(./execute-fix.expect)",
+      "Bash(./execute-ssl-final.expect)",
+      "Bash(scp get-ssl-simple.sh racho@89.232.184.218:~/)",
+      "Bash(expect execute-ssl-simple.expect:*)",
+      "Bash(expect:*)",
+      "Bash(git init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

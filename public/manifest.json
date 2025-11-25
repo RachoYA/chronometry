@@ -1,0 +1,38 @@
+{
+  "name": "Хронометраж магазина",
+  "short_name": "Хронометраж",
+  "description": "Приложение для учета времени работы в магазине с оффлайн режимом",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2196F3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Начать работу",
+      "short_name": "Начать",
+      "description": "Начать новый процесс",
+      "url": "/?action=start",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "scope": "/",
+  "lang": "ru",
+  "dir": "ltr"
+}

@@ -1,0 +1,45 @@
+#!/usr/bin/expect -f
+
+set timeout 900
+set password "cv7AE5HpRC"
+
+spawn ssh -o StrictHostKeyChecking=no racho@89.232.184.218
+
+expect "password:"
+send "$password\r"
+
+expect "*$*"
+
+send "chmod +x ~/fix-all.sh\r"
+expect "*$*"
+
+send "bash ~/fix-all.sh\r"
+
+# Обработка всех sudo запросов
+expect {
+    "*пароль для racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "*password for racho:*" {
+        send "$password\r"
+        exp_continue
+    }
+    "Все исправлено!" {
+        exp_continue
+    }
+    "HTTP/2 200" {
+        send "\r"
+    }
+    "*$*" {
+        exp_continue
+    }
+    timeout {
+        send "\r"
+    }
+}
+
+expect "*$*"
+send "exit\r"
+
+expect eof
