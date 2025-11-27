@@ -1,8 +1,7 @@
-const CACHE_NAME = 'chronometry-v6';
+const CACHE_NAME = 'chronometry-v7';
 const urlsToCache = [
     '/',
     '/index.html',
-    '/telegram-app.html',
     '/admin.html',
     '/styles.css',
     '/admin-styles.css',
@@ -13,6 +12,9 @@ const urlsToCache = [
     '/icon-512.png',
     '/icon.svg'
 ];
+
+// Файлы которые должны всегда обновляться из сети (Network First)
+const networkFirstUrls = ['/app.js', '/admin.js', '/api/'];
 
 // Установка Service Worker
 self.addEventListener('install', (event) => {
@@ -45,36 +47,61 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Стратегия: Cache First, fallback to Network
+// Проверка нужна ли Network First стратегия
+function shouldNetworkFirst(url) {
+    return networkFirstUrls.some(pattern => url.includes(pattern));
+}
+
+// Стратегия: Network First для JS/API, Cache First для остального
 self.addEventListener('fetch', (event) => {
+    const url = event.request.url;
+
+    // API запросы - всегда из сети
+    if (url.includes('/api/')) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
+    // Network First для JS файлов
+    if (shouldNetworkFirst(url)) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response && response.status === 200) {
+                        const responseToCache = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // Cache First для остальных ресурсов
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
-                // Если ресурс в кэше - возвращаем его
                 if (response) {
                     return response;
                 }
 
-                // Иначе пытаемся загрузить из сети
                 return fetch(event.request)
                     .then((response) => {
-                        // Проверяем валидность ответа
                         if (!response || response.status !== 200 || response.type !== 'basic') {
                             return response;
                         }
 
-                        // Клонируем ответ для кэша
                         const responseToCache = response.clone();
-
-                        caches.open(CACHE_NAME)
-                            .then((cache) => {
-                                cache.put(event.request, responseToCache);
-                            });
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseToCache);
+                        });
 
                         return response;
                     })
                     .catch(() => {
-                        // Если сеть недоступна, возвращаем оффлайн страницу
                         if (event.request.destination === 'document') {
                             return caches.match('/index.html');
                         }
