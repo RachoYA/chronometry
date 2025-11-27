@@ -2,9 +2,13 @@ const { Pool } = require('pg');
 
 class Database {
   constructor() {
+    // SSL только для внешних провайдеров (Heroku, Railway, etc.)
+    // В Docker локальный PostgreSQL не требует SSL
+    const useSSL = process.env.DATABASE_SSL === 'true';
+
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: useSSL ? { rejectUnauthorized: false } : false
     });
 
     this.pool.on('connect', () => {

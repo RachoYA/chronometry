@@ -50,7 +50,18 @@
       "Bash(dig:*)",
       "Bash(sshpass -p 'cv7AE5HpRC' scp -o StrictHostKeyChecking=no /tmp/chronometry-update.tar.gz racho@89.232.184.218:~/)",
       "Bash(/Users/grachyaalexanyan/Downloads/Cronometr/chronometry/deploy-update.expect)",
-      "Bash(sshpass -p 'cv7AE5HpRC' scp -o StrictHostKeyChecking=no /tmp/chronometry-auth-update.tar.gz racho@89.232.184.218:~/)"
+      "Bash(sshpass -p 'cv7AE5HpRC' scp -o StrictHostKeyChecking=no /tmp/chronometry-auth-update.tar.gz racho@89.232.184.218:~/)",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"docker --version && docker-compose --version\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"pm2 stop chronometry && pm2 delete chronometry\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && git fetch origin && git reset --hard origin/main\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"rm -rf ~/chronometry && git clone https://github.com/RachoYA/chronometry.git ~/chronometry\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"ls -la ~/chronometry/\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cat > ~/chronometry/.env << ''EOF''\nPORT=5000\nNODE_ENV=production\nPOSTGRES_PASSWORD=chronometry_prod_2024\nEOF\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"chmod +x ~/chronometry/deploy.sh && cat ~/chronometry/.env\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && docker-compose up -d --build\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && git pull origin main && docker-compose up -d --build\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"docker-compose ps && echo ''---'' && docker-compose logs --tail=30 app\")",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && docker-compose ps && echo ''---'' && docker-compose logs --tail=30 app\")"
     ],
     "deny": [],
     "ask": []
