@@ -41,7 +41,16 @@
       "Bash(./git-deploy.expect)",
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(PORT=4000 npm run:*)",
+      "Bash(ngrok http:*)",
+      "Bash(lt:*)",
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"uname -a && which node && which npm\")",
+      "Bash(nslookup:*)",
+      "Bash(dig:*)",
+      "Bash(sshpass -p 'cv7AE5HpRC' scp -o StrictHostKeyChecking=no /tmp/chronometry-update.tar.gz racho@89.232.184.218:~/)",
+      "Bash(/Users/grachyaalexanyan/Downloads/Cronometr/chronometry/deploy-update.expect)",
+      "Bash(sshpass -p 'cv7AE5HpRC' scp -o StrictHostKeyChecking=no /tmp/chronometry-auth-update.tar.gz racho@89.232.184.218:~/)"
     ],
     "deny": [],
     "ask": []

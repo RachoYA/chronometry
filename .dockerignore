@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (будут на сервере)
+.env
+.env.local
+.env.production
+
+# Database files (SQLite - больше не используем)
+*.db
+*.sqlite
+
+# Logs
+logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist
+build
+
+# Test files
+coverage
+.nyc_output
+
+# Documentation (не нужна в контейнере)
+*.md
+!README.md
+
+# Deployment scripts (старые)
+*.expect
+*.tar.gz
+deploy-*.sh
+
+# Temporary files
+tmp
+temp

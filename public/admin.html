@@ -3,59 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#16161D">
     <title>Админ-панель - Управление процессами</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/admin-styles.css">
-    <style>
-        .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .admin-header { background: #2196F3; color: white; padding: 20px; margin: -20px -20px 20px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
-        .tab { padding: 12px 24px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
-        .tab.active { border-bottom-color: #2196F3; color: #2196F3; font-weight: 600; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .process-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-        .process-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; }
-        .process-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .process-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
-        .process-card-title { font-size: 18px; font-weight: 600; }
-        .process-card-category { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 8px; }
-        .process-card-steps { font-size: 14px; color: #757575; margin-top: 8px; }
-        .steps-list { margin-top: 12px; }
-        .step-item { padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .step-number { background: #2196F3; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-title { font-size: 24px; font-weight: 600; }
-        .form-group { margin-bottom: 16px; }
-        .form-label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
-        .form-input, .form-select, .form-textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; }
-        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2196F3; }
-        .form-checkbox { width: auto; margin-right: 8px; }
-        .btn-add { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #2196F3; color: white; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(33,150,243,0.4); transition: all 0.3s; }
-        .btn-add:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(33,150,243,0.5); }
-        .btn-delete { background: #F44336; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; }
-        .btn-edit { background: #FF9800; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-right: 8px; }
-    </style>
 </head>
 <body>
-    <div class="admin-container">
+    <!-- Экран авторизации -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-logo">👑</div>
+            <h1>Админ-панель</h1>
+            <p>Введите логин и пароль</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <input type="text" id="login-username" class="form-input" placeholder="Логин" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" class="form-input" placeholder="Пароль" required>
+                </div>
+                <div id="login-error" class="login-error hidden"></div>
+                <button type="submit" class="btn btn-primary btn-login">Войти</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Основной контент админки -->
+    <div id="admin-content" class="admin-container hidden">
         <div class="admin-header">
-            <h1>Админ-панель управления процессами</h1>
-            <p>Создавайте и редактируйте процессы с последовательными шагами</p>
+            <div class="admin-header-content">
+                <div>
+                    <h1>👑 Админ-панель</h1>
+                    <p>Управление процессами, категориями и пользователями</p>
+                </div>
+                <div class="admin-user-info">
+                    <span id="admin-username">admin</span>
+                    <button id="logout-btn" class="btn btn-secondary btn-sm">Выйти</button>
+                </div>
+            </div>
         </div>
 
         <div class="tabs">
-            <div class="tab active" data-tab="processes">Процессы</div>
-            <div class="tab" data-tab="categories">Категории</div>
-            <div class="tab" data-tab="users">Пользователи</div>
+            <div class="tab active" data-tab="processes">📋 Процессы</div>
+            <div class="tab" data-tab="categories">🏷️ Категории</div>
+            <div class="tab" data-tab="users">👥 Пользователи</div>
+            <div class="tab" data-tab="analytics">📊 Аналитика</div>
         </div>
 
         <!-- Вкладка: Процессы -->
         <div id="tab-processes" class="tab-content active">
-            <div id="processes-grid" class="process-grid">
+            <div id="processes-grid">
                 <!-- Процессы загружаются динамически -->
             </div>
         </div>
@@ -69,21 +66,121 @@
 
         <!-- Вкладка: Пользователи -->
         <div id="tab-users" class="tab-content">
-            <table style="width: 100%; border-collapse: collapse;">
+            <div class="users-filter">
+                <label>
+                    <input type="checkbox" id="filter-pending" checked>
+                    Показать ожидающих подтверждения
+                </label>
+            </div>
+            <table>
                 <thead>
-                    <tr style="background: #f8f9fa;">
-                        <th style="padding: 12px; text-align: left;">ID</th>
-                        <th style="padding: 12px; text-align: left;">Имя</th>
-                        <th style="padding: 12px; text-align: left;">Telegram ID</th>
-                        <th style="padding: 12px; text-align: left;">Роль</th>
-                        <th style="padding: 12px; text-align: left;">Дата регистрации</th>
-                        <th style="padding: 12px; text-align: left;">Действия</th>
+                    <tr>
+                        <th>ID</th>
+                        <th>Логин</th>
+                        <th>Имя</th>
+                        <th>Роль</th>
+                        <th>Статус</th>
+                        <th>Дата регистрации</th>
+                        <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody id="users-table-body">
                     <!-- Пользователи загружаются динамически -->
                 </tbody>
             </table>
+        </div>
+
+        <!-- Вкладка: Аналитика -->
+        <div id="tab-analytics" class="tab-content">
+            <!-- Фильтры -->
+            <div class="analytics-filters card">
+                <h3>🔍 Фильтры</h3>
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label>Период с:</label>
+                        <input type="date" id="filter-start-date" class="form-input">
+                    </div>
+                    <div class="filter-group">
+                        <label>По:</label>
+                        <input type="date" id="filter-end-date" class="form-input">
+                    </div>
+                    <div class="filter-group">
+                        <label>Пользователь:</label>
+                        <select id="filter-user" class="form-select">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Процесс:</label>
+                        <select id="filter-process" class="form-select">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadAnalytics()">Применить</button>
+                </div>
+            </div>
+
+            <!-- Сводка -->
+            <div class="analytics-summary">
+                <div class="summary-card">
+                    <div class="summary-icon">📝</div>
+                    <div class="summary-value" id="summary-records">0</div>
+                    <div class="summary-label">Замеров</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">⏱️</div>
+                    <div class="summary-value" id="summary-total-time">0ч 0м</div>
+                    <div class="summary-label">Общее время</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">⏳</div>
+                    <div class="summary-value" id="summary-avg-time">0м</div>
+                    <div class="summary-label">Среднее время</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">👥</div>
+                    <div class="summary-value" id="summary-users">0</div>
+                    <div class="summary-label">Пользователей</div>
+                </div>
+            </div>
+
+            <!-- Статистика по процессам -->
+            <div class="analytics-section card">
+                <h3>📋 По процессам</h3>
+                <div id="stats-by-process" class="stats-table-container">
+                    <!-- Загружается динамически -->
+                </div>
+            </div>
+
+            <!-- Статистика по пользователям -->
+            <div class="analytics-section card">
+                <h3>👥 По пользователям</h3>
+                <div id="stats-by-user" class="stats-table-container">
+                    <!-- Загружается динамически -->
+                </div>
+            </div>
+
+            <!-- Таблица записей -->
+            <div class="analytics-section card">
+                <h3>📜 Все замеры</h3>
+                <div class="records-table-container">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Пользователь</th>
+                                <th>Процесс</th>
+                                <th>Длительность</th>
+                                <th>Фото</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-table-body">
+                            <!-- Записи загружаются динамически -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- Кнопка добавления -->
@@ -95,55 +192,65 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 class="modal-title" id="process-modal-title">Создать процесс</h2>
-                <button onclick="closeProcessModal()" style="border: none; background: none; font-size: 24px; cursor: pointer;">&times;</button>
+                <button onclick="closeProcessModal()">&times;</button>
             </div>
             <form id="process-form">
                 <input type="hidden" id="process-id">
 
+                <!-- Основная информация -->
                 <div class="form-group">
                     <label class="form-label">Название процесса *</label>
-                    <input type="text" id="process-name" class="form-input" required>
+                    <input type="text" id="process-name" class="form-input" placeholder="Например: Приемка товара" required>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Описание</label>
-                    <textarea id="process-description" class="form-textarea" rows="3"></textarea>
+                    <textarea id="process-description" class="form-textarea" rows="3" placeholder="Краткое описание процесса..."></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Категория</label>
-                    <select id="process-category" class="form-select">
-                        <option value="">Без категории</option>
-                        <!-- Категории загружаются динамически -->
-                    </select>
+                <!-- Двухколоночная раскладка для ПК -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Категория</label>
+                        <select id="process-category" class="form-select">
+                            <option value="">Без категории</option>
+                            <!-- Категории загружаются динамически -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Ожидаемая длительность (минуты)</label>
+                        <input type="number" id="process-duration" class="form-input" min="0" value="0" placeholder="0">
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Ожидаемая длительность (минуты)</label>
-                    <input type="number" id="process-duration" class="form-input" min="0" value="0">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Приоритет (0-10)</label>
+                        <input type="number" id="process-priority" class="form-input" min="0" max="10" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label" style="margin-top: 32px;">
+                            <input type="checkbox" id="process-sequential" class="form-checkbox">
+                            <span>📝 Последовательный процесс (с шагами)</span>
+                        </label>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Приоритет (0-10)</label>
-                    <input type="number" id="process-priority" class="form-input" min="0" max="10" value="0">
-                </div>
-
-                <div class="form-group">
-                    <label style="display: flex; align-items: center;">
-                        <input type="checkbox" id="process-sequential" class="form-checkbox">
-                        Последовательный процесс (с шагами)
-                    </label>
-                </div>
-
-                <div id="steps-section" style="display: none; margin-top: 20px;">
-                    <h3 style="margin-bottom: 12px;">Шаги процесса</h3>
+                <!-- Секция шагов -->
+                <div id="steps-section">
+                    <h3>📝 Шаги процесса</h3>
+                    <p class="steps-hint">Добавьте шаги, которые необходимо выполнить последовательно</p>
                     <div id="steps-list" class="steps-list"></div>
-                    <button type="button" onclick="addStep()" class="btn btn-secondary" style="width: 100%; margin-top: 12px;">+ Добавить шаг</button>
+                    <button type="button" onclick="addStep()" class="btn btn-secondary btn-add-step">
+                        + Добавить шаг
+                    </button>
                 </div>
 
-                <div class="btn-group" style="margin-top: 20px;">
+                <div class="btn-group">
                     <button type="button" onclick="closeProcessModal()" class="btn btn-secondary">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="submit" class="btn btn-primary">💾 Сохранить процесс</button>
                 </div>
             </form>
         </div>

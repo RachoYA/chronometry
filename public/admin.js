@@ -1,31 +1,140 @@
-// Админ-панель JavaScript
+// Админ-панель JavaScript с авторизацией
 let processes = [];
 let categories = [];
 let users = [];
 let currentProcess = null;
 let stepCounter = 0;
+let authToken = localStorage.getItem('adminToken');
+
+// API запросы с авторизацией
+async function apiRequest(url, options = {}) {
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401) {
+        logout();
+        throw new Error('Сессия истекла');
+    }
+
+    return response;
+}
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
+    if (authToken) {
+        checkAuth();
+    } else {
+        showLoginScreen();
+    }
+
+    setupLoginForm();
+});
+
+// ============ АВТОРИЗАЦИЯ ============
+
+function setupLoginForm() {
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        const errorDiv = document.getElementById('login-error');
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                errorDiv.textContent = data.error || 'Ошибка авторизации';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (data.user.role !== 'admin') {
+                errorDiv.textContent = 'Доступ только для администраторов';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Успешная авторизация
+            authToken = data.token;
+            localStorage.setItem('adminToken', authToken);
+            document.getElementById('admin-username').textContent = data.user.firstName || data.user.username;
+            showAdminPanel();
+        } catch (error) {
+            console.error('Ошибка:', error);
+            errorDiv.textContent = 'Ошибка подключения к серверу';
+            errorDiv.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('logout-btn')?.addEventListener('click', logout);
+}
+
+async function checkAuth() {
+    try {
+        const response = await apiRequest('/api/auth/me');
+        const data = await response.json();
+
+        if (data.success && data.user.role === 'admin') {
+            document.getElementById('admin-username').textContent = data.user.firstName || data.user.username;
+            showAdminPanel();
+        } else {
+            logout();
+        }
+    } catch (error) {
+        logout();
+    }
+}
+
+function showLoginScreen() {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('admin-content').classList.add('hidden');
+}
+
+function showAdminPanel() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('admin-content').classList.remove('hidden');
     initTabs();
     loadData();
     setupEventListeners();
-});
+}
+
+function logout() {
+    authToken = null;
+    localStorage.removeItem('adminToken');
+    showLoginScreen();
+}
 
 function initTabs() {
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const tabName = tab.dataset.tab;
 
-            // Активируем вкладку
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
-            // Показываем контент
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'analytics') {
+                populateFilterSelects();
+                loadAnalytics();
+            }
         });
     });
 }
@@ -34,6 +143,7 @@ function setupEventListeners() {
     document.getElementById('btn-add-process').addEventListener('click', () => openProcessModal());
     document.getElementById('process-form').addEventListener('submit', handleProcessSubmit);
     document.getElementById('process-sequential').addEventListener('change', toggleStepsSection);
+    document.getElementById('filter-pending')?.addEventListener('change', renderUsers);
 }
 
 async function loadData() {
@@ -48,12 +158,11 @@ async function loadData() {
 
 async function loadProcesses() {
     try {
-        const response = await fetch('/api/admin/processes');
+        const response = await apiRequest('/api/admin/processes');
         processes = await response.json();
         renderProcesses();
     } catch (error) {
         console.error('Ошибка загрузки процессов:', error);
-        alert('Ошибка загрузки процессов');
     }
 }
 
@@ -124,7 +233,7 @@ function openProcessModal(processId = null) {
     } else {
         document.getElementById('process-form').reset();
         document.getElementById('steps-list').innerHTML = '';
-        document.getElementById('steps-section').style.display = 'none';
+        document.getElementById('steps-section').classList.remove('visible');
     }
 
     modal.classList.add('active');
@@ -138,7 +247,12 @@ function closeProcessModal() {
 
 function toggleStepsSection() {
     const isSequential = document.getElementById('process-sequential').checked;
-    document.getElementById('steps-section').style.display = isSequential ? 'block' : 'none';
+    const section = document.getElementById('steps-section');
+    if (isSequential) {
+        section.classList.add('visible');
+    } else {
+        section.classList.remove('visible');
+    }
 }
 
 function addStep() {
@@ -173,7 +287,6 @@ function removeStep(stepId) {
     const stepElement = document.querySelector(`[data-step-id="${stepId}"]`);
     stepElement.remove();
 
-    // Перенумеруем шаги
     document.querySelectorAll('.step-item').forEach((item, index) => {
         item.querySelector('.step-number').textContent = index + 1;
     });
@@ -221,7 +334,6 @@ async function handleProcessSubmit(e) {
         is_active: 1
     };
 
-    // Собираем шаги если процесс последовательный
     if (processData.is_sequential) {
         processData.steps = [];
         document.querySelectorAll('.step-item').forEach((stepItem, index) => {
@@ -246,9 +358,8 @@ async function handleProcessSubmit(e) {
         const url = processId ? `/api/admin/processes/${processId}` : '/api/admin/processes';
         const method = processId ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
+        const response = await apiRequest(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(processData)
         });
 
@@ -267,12 +378,11 @@ async function handleProcessSubmit(e) {
 
 async function editProcess(id) {
     try {
-        const response = await fetch(`/api/admin/processes/${id}`);
+        const response = await apiRequest(`/api/admin/processes/${id}`);
         const process = await response.json();
         openProcessModal(id);
     } catch (error) {
         console.error('Ошибка загрузки процесса:', error);
-        alert('Ошибка загрузки процесса');
     }
 }
 
@@ -280,7 +390,7 @@ async function deleteProcess(id) {
     if (!confirm('Удалить этот процесс?')) return;
 
     try {
-        const response = await fetch(`/api/admin/processes/${id}`, { method: 'DELETE' });
+        const response = await apiRequest(`/api/admin/processes/${id}`, { method: 'DELETE' });
         if (response.ok) {
             alert('Процесс удален');
             await loadProcesses();
@@ -289,7 +399,6 @@ async function deleteProcess(id) {
         }
     } catch (error) {
         console.error('Ошибка:', error);
-        alert('Ошибка удаления');
     }
 }
 
@@ -297,7 +406,7 @@ async function deleteProcess(id) {
 
 async function loadCategories() {
     try {
-        const response = await fetch('/api/admin/categories');
+        const response = await apiRequest('/api/admin/categories');
         categories = await response.json();
         renderCategoriesSelect();
         renderCategoriesList();
@@ -329,7 +438,7 @@ function renderCategoriesList() {
 
 async function loadUsers() {
     try {
-        const response = await fetch('/api/admin/users');
+        const response = await apiRequest('/api/admin/users');
         users = await response.json();
         renderUsers();
     } catch (error) {
@@ -339,25 +448,60 @@ async function loadUsers() {
 
 function renderUsers() {
     const tbody = document.getElementById('users-table-body');
-    tbody.innerHTML = users.map(user => `
-        <tr>
-            <td style="padding: 12px;">${user.id}</td>
-            <td style="padding: 12px;">${user.first_name || user.username || '-'}</td>
-            <td style="padding: 12px;">${user.telegram_id || '-'}</td>
-            <td style="padding: 12px;">
-                <select onchange="changeUserRole(${user.id}, this.value)" style="padding: 6px; border-radius: 4px;">
-                    <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
-                    <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-                </select>
-            </td>
-            <td style="padding: 12px;">${new Date(user.created_at).toLocaleDateString('ru-RU')}</td>
-            <td style="padding: 12px;">
-                <span style="color: ${user.role === 'admin' ? '#4CAF50' : '#757575'};">
-                    ${user.role === 'admin' ? '👑 Админ' : '👤 Пользователь'}
-                </span>
-            </td>
-        </tr>
-    `).join('');
+    const showPending = document.getElementById('filter-pending')?.checked ?? true;
+
+    const filteredUsers = showPending ? users : users.filter(u => u.status !== 'pending');
+
+    tbody.innerHTML = filteredUsers.map(user => {
+        const statusBadge = getStatusBadge(user.status);
+        const roleBadge = user.role === 'admin' ? '👑 Админ' : '👤 Пользователь';
+
+        return `
+            <tr class="${user.status === 'pending' ? 'pending-row' : ''}">
+                <td style="padding: 12px;">${user.id}</td>
+                <td style="padding: 12px;">${user.username || '-'}</td>
+                <td style="padding: 12px;">${user.first_name || '-'}</td>
+                <td style="padding: 12px;">
+                    <select onchange="changeUserRole(${user.id}, this.value)" style="padding: 6px; border-radius: 4px;" ${user.username === 'admin' ? 'disabled' : ''}>
+                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                </td>
+                <td style="padding: 12px;">${statusBadge}</td>
+                <td style="padding: 12px;">${user.created_at ? new Date(user.created_at).toLocaleDateString('ru-RU') : '-'}</td>
+                <td style="padding: 12px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${user.status === 'pending' ? `
+                            <button class="btn-approve" onclick="changeUserStatus(${user.id}, 'approved')">✓ Одобрить</button>
+                            <button class="btn-reject" onclick="changeUserStatus(${user.id}, 'rejected')">✗ Отклонить</button>
+                        ` : ''}
+                        ${user.status === 'rejected' ? `
+                            <button class="btn-approve" onclick="changeUserStatus(${user.id}, 'approved')">✓ Одобрить</button>
+                        ` : ''}
+                        ${user.status === 'approved' && user.role !== 'admin' ? `
+                            <button class="btn-reject" onclick="changeUserStatus(${user.id}, 'rejected')">Заблокировать</button>
+                        ` : ''}
+                        ${user.username !== 'admin' ? `
+                            <button class="btn-delete" onclick="deleteUser(${user.id})">🗑️</button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getStatusBadge(status) {
+    switch (status) {
+        case 'approved':
+            return '<span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Активен</span>';
+        case 'pending':
+            return '<span style="background: #FF9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Ожидает</span>';
+        case 'rejected':
+            return '<span style="background: #F44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Отклонен</span>';
+        default:
+            return '<span style="background: #757575; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Неизвестно</span>';
+    }
 }
 
 async function changeUserRole(userId, newRole) {
@@ -367,20 +511,257 @@ async function changeUserRole(userId, newRole) {
     }
 
     try {
-        const response = await fetch(`/api/admin/users/${userId}/role`, {
+        const response = await apiRequest(`/api/admin/users/${userId}/role`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ role: newRole })
         });
 
         if (response.ok) {
-            alert('Роль изменена');
             await loadUsers();
         } else {
             alert('Ошибка изменения роли');
         }
     } catch (error) {
         console.error('Ошибка:', error);
-        alert('Ошибка изменения роли');
     }
+}
+
+async function changeUserStatus(userId, status) {
+    const statusText = status === 'approved' ? 'одобрить' : 'отклонить';
+    if (!confirm(`${statusText.charAt(0).toUpperCase() + statusText.slice(1)} пользователя?`)) return;
+
+    try {
+        const response = await apiRequest(`/api/admin/users/${userId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        });
+
+        if (response.ok) {
+            await loadUsers();
+        } else {
+            alert('Ошибка изменения статуса');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+    }
+}
+
+async function deleteUser(userId) {
+    if (!confirm('Удалить пользователя?')) return;
+
+    try {
+        const response = await apiRequest(`/api/admin/users/${userId}`, { method: 'DELETE' });
+
+        if (response.ok) {
+            await loadUsers();
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Ошибка удаления');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+    }
+}
+
+// ============ АНАЛИТИКА ============
+
+async function loadAnalytics() {
+    const startDate = document.getElementById('filter-start-date').value;
+    const endDate = document.getElementById('filter-end-date').value;
+    const userId = document.getElementById('filter-user').value;
+    const processId = document.getElementById('filter-process').value;
+
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (userId) params.append('userId', userId);
+    if (processId) params.append('processId', processId);
+    params.append('limit', '200');
+
+    try {
+        const [summaryRes, byProcessRes, byUserRes, recordsRes] = await Promise.all([
+            apiRequest(`/api/admin/analytics/summary?${params}`),
+            apiRequest(`/api/admin/analytics/by-process?${params}`),
+            apiRequest(`/api/admin/analytics/by-user?${params}`),
+            apiRequest(`/api/admin/analytics/records?${params}`)
+        ]);
+
+        const summary = await summaryRes.json();
+        const byProcess = await byProcessRes.json();
+        const byUser = await byUserRes.json();
+        const records = await recordsRes.json();
+
+        renderAnalyticsSummary(summary);
+        renderStatsByProcess(byProcess);
+        renderStatsByUser(byUser);
+        renderRecordsTable(records);
+    } catch (error) {
+        console.error('Ошибка загрузки аналитики:', error);
+    }
+}
+
+function renderAnalyticsSummary(summary) {
+    document.getElementById('summary-records').textContent = summary.total_records || 0;
+    document.getElementById('summary-users').textContent = summary.total_users || 0;
+
+    const totalMinutes = summary.total_minutes || 0;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round(totalMinutes % 60);
+    document.getElementById('summary-total-time').textContent = `${hours}ч ${minutes}м`;
+
+    const avgMinutes = Math.round(summary.avg_minutes || 0);
+    document.getElementById('summary-avg-time').textContent = `${avgMinutes}м`;
+}
+
+function renderStatsByProcess(stats) {
+    const container = document.getElementById('stats-by-process');
+
+    if (!stats || stats.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-text">Нет данных по процессам</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Процесс</th>
+                    <th>Кол-во</th>
+                    <th>Общее время</th>
+                    <th>Среднее</th>
+                    <th>Мин</th>
+                    <th>Макс</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${stats.map(row => `
+                    <tr>
+                        <td class="process-name-cell">
+                            ${row.category_icon ? `<span class="category-badge" style="background: ${row.category_color}20; color: ${row.category_color};">${row.category_icon}</span>` : ''}
+                            ${row.process_name}
+                        </td>
+                        <td><strong>${row.count}</strong></td>
+                        <td>${formatMinutes(row.total_minutes)}</td>
+                        <td>${formatMinutes(row.avg_minutes)}</td>
+                        <td>${formatMinutes(row.min_minutes)}</td>
+                        <td>${formatMinutes(row.max_minutes)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderStatsByUser(stats) {
+    const container = document.getElementById('stats-by-user');
+
+    if (!stats || stats.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">👥</div>
+                <div class="empty-state-text">Нет данных по пользователям</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Пользователь</th>
+                    <th>Замеров</th>
+                    <th>Общее время</th>
+                    <th>Среднее</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${stats.map(row => `
+                    <tr>
+                        <td><strong>${row.user_name || row.username || 'Без имени'}</strong></td>
+                        <td>${row.count}</td>
+                        <td>${formatMinutes(row.total_minutes)}</td>
+                        <td>${formatMinutes(row.avg_minutes)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderRecordsTable(records) {
+    const tbody = document.getElementById('records-table-body');
+
+    if (!records || records.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state">
+                    <div class="empty-state-icon">📜</div>
+                    <div class="empty-state-text">Нет записей</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = records.map(record => {
+        const date = new Date(record.start_time);
+        const dateStr = date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        return `
+            <tr>
+                <td>${dateStr}</td>
+                <td>${record.user_name || record.username || '-'}</td>
+                <td class="process-name-cell">
+                    ${record.category_icon ? `<span class="category-badge" style="background: ${record.category_color}20; color: ${record.category_color};">${record.category_icon}</span>` : ''}
+                    ${record.process_name || '-'}
+                </td>
+                <td class="duration-cell">${formatMinutes(record.duration_minutes)}</td>
+                <td>${record.photo_count > 0 ? `<span class="photo-badge">${record.photo_count}</span>` : '<span class="no-photo">-</span>'}</td>
+                <td class="comment-cell" title="${record.comment || ''}">${record.comment || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function formatMinutes(minutes) {
+    if (!minutes || minutes <= 0) return '0м';
+    if (minutes < 60) return `${Math.round(minutes)}м`;
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    return mins > 0 ? `${hours}ч ${mins}м` : `${hours}ч`;
+}
+
+function populateFilterSelects() {
+    const userSelect = document.getElementById('filter-user');
+    if (userSelect) {
+        userSelect.innerHTML = '<option value="">Все</option>' +
+            users.map(u => `<option value="${u.id}">${u.first_name || u.username || 'ID: ' + u.id}</option>`).join('');
+    }
+
+    const processSelect = document.getElementById('filter-process');
+    if (processSelect) {
+        processSelect.innerHTML = '<option value="">Все</option>' +
+            processes.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 1);
+
+    const startInput = document.getElementById('filter-start-date');
+    const endInput = document.getElementById('filter-end-date');
+    if (startInput && !startInput.value) startInput.value = startDate.toISOString().split('T')[0];
+    if (endInput && !endInput.value) endInput.value = endDate.toISOString().split('T')[0];
 }

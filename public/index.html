@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2196F3">
+    <meta name="theme-color" content="#16161D">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Хронометраж магазина</title>
@@ -22,12 +22,44 @@
 
         <!-- Экран авторизации -->
         <div id="auth-screen" class="screen">
-            <div class="container">
+            <div class="container auth-container">
                 <div class="logo">📊</div>
                 <h1>Хронометраж магазина</h1>
-                <p>Введите ваше имя для начала работы</p>
-                <input type="text" id="username-input" placeholder="Ваше имя" class="input">
-                <button id="login-btn" class="btn btn-primary">Войти</button>
+
+                <!-- Вкладки авторизации -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Вход</button>
+                    <button class="auth-tab" data-tab="register">Регистрация</button>
+                </div>
+
+                <!-- Форма входа -->
+                <div id="login-form" class="auth-form">
+                    <p class="auth-description">Введите логин и пароль</p>
+                    <input type="text" id="login-username" placeholder="Логин" class="input" autocomplete="username">
+                    <input type="password" id="login-password" placeholder="Пароль" class="input" autocomplete="current-password">
+                    <div id="login-error" class="auth-error hidden"></div>
+                    <button id="login-btn" class="btn btn-primary">Войти</button>
+                </div>
+
+                <!-- Форма регистрации -->
+                <div id="register-form" class="auth-form hidden">
+                    <p class="auth-description">Создайте новый аккаунт</p>
+                    <input type="text" id="register-username" placeholder="Логин (мин. 3 символа)" class="input" autocomplete="username">
+                    <input type="text" id="register-name" placeholder="Ваше имя" class="input" autocomplete="name">
+                    <input type="password" id="register-password" placeholder="Пароль (мин. 4 символа)" class="input" autocomplete="new-password">
+                    <input type="password" id="register-password-confirm" placeholder="Подтвердите пароль" class="input" autocomplete="new-password">
+                    <div id="register-error" class="auth-error hidden"></div>
+                    <div id="register-success" class="auth-success hidden"></div>
+                    <button id="register-btn" class="btn btn-primary">Зарегистрироваться</button>
+                </div>
+
+                <!-- Статус ожидания подтверждения -->
+                <div id="pending-status" class="auth-pending hidden">
+                    <div class="pending-icon">⏳</div>
+                    <h3>Ожидание подтверждения</h3>
+                    <p>Ваш аккаунт ожидает подтверждения администратором. Попробуйте войти позже.</p>
+                    <button id="back-to-login-btn" class="btn btn-secondary">Назад к входу</button>
+                </div>
             </div>
         </div>
 
@@ -52,14 +84,27 @@
                         <div class="process-time" id="active-process-time">00:00:00</div>
                         <div class="process-started">Начат: <span id="active-process-started">—</span></div>
                     </div>
-                    <div class="btn-group">
-                        <button id="add-photo-btn" class="btn btn-secondary">📷 Добавить фото</button>
+
+                    <!-- Текущий шаг (для многошаговых процессов) -->
+                    <div id="current-step-info" class="current-step-info hidden">
+                        <div class="current-step-header">
+                            <span class="current-step-label">Текущий шаг:</span>
+                            <span class="current-step-progress" id="step-progress">1/3</span>
+                        </div>
+                        <div class="current-step-name" id="current-step-name">—</div>
+                        <div class="current-step-desc" id="current-step-desc"></div>
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="action-buttons">
+                        <button id="add-photo-btn" class="btn btn-secondary">📷 Фото</button>
+                        <button id="complete-step-btn" class="btn btn-primary hidden">✓ Шаг выполнен</button>
                         <button id="stop-process-btn" class="btn btn-danger">⏹ Завершить</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Контейнер для шагов (НОВОЕ) -->
+            <!-- Контейнер для списка шагов (сворачиваемый) -->
             <div id="steps-container" class="card hidden">
                 <!-- Шаги загружаются динамически -->
             </div>

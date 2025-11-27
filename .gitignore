@@ -1,15 +1,18 @@
 # Dependencies
 node_modules/
 
-# Environment
+# Environment (production secrets)
 .env
+.env.local
+.env.production
 
 # Logs
 *.log
-bot.log
 
-# Database
+# Database (SQLite - устаревшее)
 data/
+*.db
+*.sqlite
 
 # Uploads
 photos/
@@ -29,7 +32,8 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Deployment scripts (archived)
+# Old deployment scripts
 *.expect
-*.sh
-deploy*.log
+
+# Claude Code settings
+.claude/

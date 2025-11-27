@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:16-alpine
+    container_name: chronometry-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chronometry
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chronometry_secret}
+      POSTGRES_DB: chronometry
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronometry -d chronometry"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chronometry-network
+
+  # Node.js приложение
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chronometry-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://chronometry:${POSTGRES_PASSWORD:-chronometry_secret}@postgres:5432/chronometry
+    ports:
+      - "5000:5000"
+    networks:
+      - chronometry-network
+
+volumes:
+  postgres_data:
+
+networks:
+  chronometry-network:
+    driver: bridge

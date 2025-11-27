@@ -1,12 +1,17 @@
-const CACHE_NAME = 'chronometry-v1';
+const CACHE_NAME = 'chronometry-v6';
 const urlsToCache = [
     '/',
     '/index.html',
+    '/telegram-app.html',
+    '/admin.html',
     '/styles.css',
+    '/admin-styles.css',
     '/app.js',
+    '/admin.js',
     '/manifest.json',
     '/icon-192.png',
-    '/icon-512.png'
+    '/icon-512.png',
+    '/icon.svg'
 ];
 
 // Установка Service Worker

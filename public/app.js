@@ -1,6 +1,7 @@
 // Управление состоянием приложения
 const App = {
     user: null,
+    authToken: localStorage.getItem('userToken'),
     activeProcess: null,
     activeRecord: null,
     currentStepIndex: 0,
@@ -13,9 +14,63 @@ const App = {
 const API = {
     baseURL: '',
 
+    // Обертка для API запросов с авторизацией
+    async request(url, options = {}) {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+
+        if (App.authToken) {
+            headers['Authorization'] = `Bearer ${App.authToken}`;
+        }
+
+        const response = await fetch(url, { ...options, headers });
+
+        if (response.status === 401) {
+            // Токен истек - выходим
+            App.authToken = null;
+            localStorage.removeItem('userToken');
+            UI.showScreen('auth-screen');
+            throw new Error('Сессия истекла');
+        }
+
+        return response;
+    },
+
+    // Авторизация
+    async login(username, password) {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        return response.json().then(data => ({ ...data, status: response.status, ok: response.ok }));
+    },
+
+    // Регистрация
+    async register(username, password, firstName) {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, firstName })
+        });
+        return response.json().then(data => ({ ...data, status: response.status, ok: response.ok }));
+    },
+
+    // Проверка токена
+    async checkAuth() {
+        try {
+            const response = await this.request('/api/auth/me');
+            return await response.json();
+        } catch (error) {
+            return { success: false };
+        }
+    },
+
     async getProcesses() {
         try {
-            const response = await fetch('/api/admin/processes');
+            const response = await this.request('/api/processes');
             if (!response.ok) throw new Error('Failed to load processes');
             return await response.json();
         } catch (error) {
@@ -27,13 +82,9 @@ const API = {
 
     async syncRecord(record) {
         try {
-            const response = await fetch('/api/sync/records', {
+            const response = await this.request('/api/sync/records', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: record.userId,
-                    records: [record]
-                })
+                body: JSON.stringify({ records: [record] })
             });
             return response.ok;
         } catch (error) {
@@ -464,7 +515,7 @@ const UI = {
         });
     },
 
-    // НОВОЕ: Отображение шагов процесса
+    // Отображение шагов процесса с кнопками действий
     renderSteps(process, completedStepIds = []) {
         const container = document.getElementById('steps-container');
         if (!container) return;
@@ -476,6 +527,9 @@ const UI = {
 
         container.classList.remove('hidden');
 
+        const allCompleted = App.currentStepIndex >= process.steps.length;
+        const progressPercent = (completedStepIds.length / process.steps.length) * 100;
+
         const stepsHTML = process.steps.map((step, index) => {
             const isCompleted = completedStepIds.includes(step.id);
             const isCurrent = index === App.currentStepIndex;
@@ -483,7 +537,7 @@ const UI = {
 
             return `
                 <div class="step-item ${statusClass}" data-step-id="${step.id}" data-step-index="${index}">
-                    <div class="step-number">${index + 1}</div>
+                    <div class="step-number">${isCompleted ? '✓' : index + 1}</div>
                     <div class="step-content">
                         <div class="step-name">${step.name}</div>
                         ${step.description ? `
@@ -491,44 +545,72 @@ const UI = {
                         ` : ''}
                         <div class="step-meta">
                             ${step.estimated_duration > 0 ? `
-                                <span class="step-duration">⏱ ${step.estimated_duration} мин</span>
+                                <span class="step-duration">⏱ ~${step.estimated_duration} мин</span>
                             ` : ''}
                             ${step.requires_photo ? `
-                                <span class="step-photo-required">📷 Фото обязательно</span>
+                                <span class="step-photo-required">📷 Фото</span>
                             ` : ''}
                         </div>
+                        ${isCurrent ? `
+                            <div class="step-actions">
+                                ${step.requires_photo ? `
+                                    <button class="btn btn-secondary btn-sm btn-step-photo" data-step-id="${step.id}">
+                                        📷 Фото
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-primary btn-sm btn-complete-step" data-step-index="${index}">
+                                    ✓ Выполнено
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="step-status-icon">
-                        ${isCompleted ? '✓' : (isCurrent ? '→' : '')}
+                        ${isCompleted ? '✅' : (isCurrent ? '▶️' : '')}
                     </div>
                 </div>
             `;
         }).join('');
 
         container.innerHTML = `
-            <div class="steps-header">
-                <h4>Шаги выполнения</h4>
-                <div class="steps-progress">
-                    ${completedStepIds.length} / ${process.steps.length}
+            <div class="card-header">
+                <h3>📋 Шаги выполнения</h3>
+            </div>
+            <div class="card-body">
+                <div class="steps-progress-container">
+                    <div class="steps-progress-bar">
+                        <div class="steps-progress-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="steps-progress-text">
+                        ${completedStepIds.length} из ${process.steps.length}
+                    </div>
                 </div>
+                <div class="steps-list">
+                    ${stepsHTML}
+                </div>
+                ${allCompleted ? `
+                    <div class="all-steps-completed">
+                        🎉 Все шаги выполнены!
+                    </div>
+                ` : ''}
             </div>
-            <div class="steps-list">
-                ${stepsHTML}
-            </div>
-            ${App.currentStepIndex < process.steps.length ? `
-                <button id="complete-step-btn" class="btn btn-primary">
-                    ✓ Завершить шаг "${process.steps[App.currentStepIndex].name}"
-                </button>
-            ` : ''}
         `;
 
-        // Обработчик кнопки завершения шага
-        const completeBtn = document.getElementById('complete-step-btn');
-        if (completeBtn) {
-            completeBtn.addEventListener('click', () => {
+        // Обработчики кнопок завершения шага
+        container.querySelectorAll('.btn-complete-step').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 Actions.completeCurrentStep();
             });
-        }
+        });
+
+        // Обработчики кнопок фото
+        container.querySelectorAll('.btn-step-photo').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const stepId = parseInt(btn.dataset.stepId);
+                Actions.addPhoto(stepId);
+            });
+        });
     },
 
     async renderHistory() {
@@ -589,6 +671,8 @@ const UI = {
     updateActiveProcess() {
         if (!App.activeProcess || !App.activeRecord) {
             UI.hideElement('active-process');
+            UI.hideElement('current-step-info');
+            document.getElementById('complete-step-btn')?.classList.add('hidden');
             return;
         }
 
@@ -598,9 +682,42 @@ const UI = {
         document.getElementById('active-process-name').textContent = process?.name || 'Процесс';
         document.getElementById('active-process-started').textContent = Utils.formatTime(App.activeRecord.startTime);
 
-        // Отображаем шаги если это последовательный процесс
-        if (process && process.is_sequential) {
+        // Обновляем UI для многошаговых процессов
+        const currentStepInfo = document.getElementById('current-step-info');
+        const completeStepBtn = document.getElementById('complete-step-btn');
+
+        if (process && process.is_sequential && process.steps && process.steps.length > 0) {
+            const currentStep = process.steps[App.currentStepIndex];
+            const allCompleted = App.currentStepIndex >= process.steps.length;
+
+            if (allCompleted) {
+                // Все шаги выполнены
+                currentStepInfo.classList.remove('hidden');
+                document.getElementById('step-progress').textContent = `${process.steps.length}/${process.steps.length}`;
+                document.getElementById('current-step-name').textContent = '🎉 Все шаги выполнены!';
+                document.getElementById('current-step-desc').textContent = 'Можете завершить процесс';
+                completeStepBtn.classList.add('hidden');
+            } else {
+                // Показываем текущий шаг
+                currentStepInfo.classList.remove('hidden');
+                document.getElementById('step-progress').textContent = `${App.currentStepIndex + 1}/${process.steps.length}`;
+                document.getElementById('current-step-name').textContent = currentStep.name;
+                document.getElementById('current-step-desc').textContent = currentStep.description || '';
+
+                // Показываем кнопку завершения шага
+                completeStepBtn.classList.remove('hidden');
+                completeStepBtn.textContent = currentStep.requires_photo
+                    ? '📷 + ✓ Завершить шаг'
+                    : '✓ Шаг выполнен';
+            }
+
+            // Отображаем список шагов (сворачиваемый)
             UI.renderSteps(process, App.completedSteps.map(s => s.stepId));
+        } else {
+            // Обычный процесс без шагов
+            currentStepInfo.classList.add('hidden');
+            completeStepBtn.classList.add('hidden');
+            UI.hideElement('steps-container');
         }
     },
 
@@ -636,11 +753,24 @@ const Actions = {
         // Инициализация IndexedDB
         await DB.init();
 
-        // Загрузка пользователя
-        const user = await DB.getUser();
-        if (user) {
-            App.user = user;
-            await this.loadApp();
+        // Проверяем токен
+        if (App.authToken) {
+            const authResult = await API.checkAuth();
+            if (authResult.success) {
+                App.user = {
+                    id: authResult.user.id,
+                    name: authResult.user.firstName || authResult.user.username,
+                    username: authResult.user.username,
+                    role: authResult.user.role
+                };
+                await DB.saveUser(App.user);
+                await this.loadApp();
+            } else {
+                // Токен недействителен
+                App.authToken = null;
+                localStorage.removeItem('userToken');
+                UI.showScreen('auth-screen');
+            }
         } else {
             UI.showScreen('auth-screen');
         }
@@ -726,15 +856,52 @@ const Actions = {
     },
 
     setupEventListeners() {
+        // Вкладки авторизации
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                document.getElementById('login-form').classList.toggle('hidden', tabName !== 'login');
+                document.getElementById('register-form').classList.toggle('hidden', tabName !== 'register');
+                document.getElementById('pending-status').classList.add('hidden');
+
+                // Очищаем сообщения об ошибках
+                document.getElementById('login-error').classList.add('hidden');
+                document.getElementById('register-error').classList.add('hidden');
+                document.getElementById('register-success').classList.add('hidden');
+            });
+        });
+
         // Авторизация
         document.getElementById('login-btn')?.addEventListener('click', () => {
             this.login();
         });
 
-        document.getElementById('username-input')?.addEventListener('keypress', (e) => {
+        document.getElementById('login-password')?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.login();
             }
+        });
+
+        // Регистрация
+        document.getElementById('register-btn')?.addEventListener('click', () => {
+            this.register();
+        });
+
+        document.getElementById('register-password-confirm')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.register();
+            }
+        });
+
+        // Назад к входу (из статуса ожидания)
+        document.getElementById('back-to-login-btn')?.addEventListener('click', () => {
+            document.getElementById('pending-status').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.auth-tab[data-tab="login"]').classList.add('active');
         });
 
         // Выход
@@ -749,27 +916,154 @@ const Actions = {
 
         // Добавление фото
         document.getElementById('add-photo-btn')?.addEventListener('click', () => {
+            // Для многошаговых процессов добавляем фото к текущему шагу
+            if (App.activeProcess?.is_sequential && App.activeProcess?.steps) {
+                const currentStep = App.activeProcess.steps[App.currentStepIndex];
+                if (currentStep) {
+                    this.addPhoto(currentStep.id);
+                    return;
+                }
+            }
             this.addPhoto();
+        });
+
+        // Завершение текущего шага (кнопка в основном блоке)
+        document.getElementById('complete-step-btn')?.addEventListener('click', () => {
+            this.completeCurrentStep();
+        });
+
+        // Модальное окно завершения процесса
+        document.getElementById('confirm-finish-btn')?.addEventListener('click', () => {
+            this.confirmStopProcess();
+        });
+
+        document.getElementById('cancel-finish-btn')?.addEventListener('click', () => {
+            this.hideStopDialog();
+        });
+
+        // Закрытие модалки по клику на фон
+        document.getElementById('finish-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'finish-modal') {
+                this.hideStopDialog();
+            }
         });
     },
 
     async login() {
-        const input = document.getElementById('username-input');
-        const name = input.value.trim();
+        const usernameInput = document.getElementById('login-username');
+        const passwordInput = document.getElementById('login-password');
+        const errorDiv = document.getElementById('login-error');
 
-        if (!name) {
-            alert('Введите ваше имя');
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!username || !password) {
+            errorDiv.textContent = 'Введите логин и пароль';
+            errorDiv.classList.remove('hidden');
             return;
         }
 
-        App.user = {
-            id: Date.now(),
-            name: name,
-            createdAt: new Date().toISOString()
-        };
+        try {
+            const result = await API.login(username, password);
 
-        await DB.saveUser(App.user);
-        await this.loadApp();
+            if (!result.ok) {
+                // Проверяем статус pending
+                if (result.status === 'pending') {
+                    document.getElementById('login-form').classList.add('hidden');
+                    document.getElementById('register-form').classList.add('hidden');
+                    document.getElementById('pending-status').classList.remove('hidden');
+                    return;
+                }
+                errorDiv.textContent = result.error || 'Ошибка авторизации';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Успешная авторизация
+            App.authToken = result.token;
+            localStorage.setItem('userToken', result.token);
+
+            App.user = {
+                id: result.user.id,
+                name: result.user.firstName || result.user.username,
+                username: result.user.username,
+                role: result.user.role
+            };
+
+            await DB.saveUser(App.user);
+            errorDiv.classList.add('hidden');
+            await this.loadApp();
+        } catch (error) {
+            console.error('Login error:', error);
+            errorDiv.textContent = 'Ошибка подключения к серверу';
+            errorDiv.classList.remove('hidden');
+        }
+    },
+
+    async register() {
+        const usernameInput = document.getElementById('register-username');
+        const nameInput = document.getElementById('register-name');
+        const passwordInput = document.getElementById('register-password');
+        const confirmInput = document.getElementById('register-password-confirm');
+        const errorDiv = document.getElementById('register-error');
+        const successDiv = document.getElementById('register-success');
+
+        const username = usernameInput.value.trim();
+        const firstName = nameInput.value.trim();
+        const password = passwordInput.value;
+        const confirmPassword = confirmInput.value;
+
+        errorDiv.classList.add('hidden');
+        successDiv.classList.add('hidden');
+
+        if (!username || !password) {
+            errorDiv.textContent = 'Заполните все обязательные поля';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        if (username.length < 3) {
+            errorDiv.textContent = 'Логин должен быть минимум 3 символа';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        if (password.length < 4) {
+            errorDiv.textContent = 'Пароль должен быть минимум 4 символа';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            errorDiv.textContent = 'Пароли не совпадают';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const result = await API.register(username, password, firstName || username);
+
+            if (!result.ok) {
+                errorDiv.textContent = result.error || 'Ошибка регистрации';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Успешная регистрация
+            successDiv.textContent = result.message || 'Регистрация успешна. Ожидайте подтверждения администратором.';
+            successDiv.classList.remove('hidden');
+
+            // Очищаем поля
+            usernameInput.value = '';
+            nameInput.value = '';
+            passwordInput.value = '';
+            confirmInput.value = '';
+
+        } catch (error) {
+            console.error('Register error:', error);
+            errorDiv.textContent = 'Ошибка подключения к серверу';
+            errorDiv.classList.remove('hidden');
+        }
     },
 
     async logout() {
@@ -779,16 +1073,28 @@ const Actions = {
             }
         }
 
+        // Отправляем запрос на выход
+        try {
+            await API.request('/api/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+
         App.user = null;
+        App.authToken = null;
+        localStorage.removeItem('userToken');
         App.activeProcess = null;
         App.activeRecord = null;
         App.currentStepIndex = 0;
         App.completedSteps = [];
-        
+
         UI.stopTimer();
         UI.showScreen('auth-screen');
-        
-        document.getElementById('username-input').value = '';
+
+        // Очищаем форму
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-error').classList.add('hidden');
     },
 
     async startProcess(processId) {
@@ -855,14 +1161,14 @@ const Actions = {
         App.completedSteps.push(stepCompletion);
         App.currentStepIndex++;
 
-        // Обновляем отображение
-        UI.renderSteps(process, App.completedSteps.map(s => s.stepId));
+        // Обновляем весь UI активного процесса (включая текущий шаг)
+        UI.updateActiveProcess();
 
         // Если все шаги завершены, предлагаем завершить процесс
         if (App.currentStepIndex >= process.steps.length) {
-            if (confirm('Все шаги выполнены! Завершить процесс?')) {
-                this.showStopDialog();
-            }
+            this.showNotification('Все шаги выполнены!', 'success');
+            // Автоматически открываем диалог завершения
+            setTimeout(() => this.showStopDialog(), 1000);
         }
     },
 
@@ -870,19 +1176,50 @@ const Actions = {
         if (!App.activeProcess || !App.activeRecord) return;
 
         const process = App.activeProcess;
+        const modal = document.getElementById('finish-modal');
+        const processNameEl = document.getElementById('finish-process-name');
+        const durationEl = document.getElementById('finish-duration');
+        const commentInput = document.getElementById('comment-input');
 
-        // Проверяем, все ли шаги выполнены для последовательного процесса
-        if (process.is_sequential && process.steps) {
-            if (App.currentStepIndex < process.steps.length) {
-                const remaining = process.steps.length - App.currentStepIndex;
-                if (!confirm(`Остались невыполненные шаги (${remaining}). Все равно завершить процесс?`)) {
-                    return;
-                }
-            }
+        // Показываем информацию в модальном окне
+        processNameEl.textContent = process.name;
+        const currentDuration = Utils.getCurrentTimer(App.activeRecord.startTime);
+        durationEl.textContent = Utils.formatDuration(currentDuration);
+        commentInput.value = '';
+
+        // Добавляем предупреждение о невыполненных шагах
+        let warningEl = modal.querySelector('.steps-warning');
+        if (warningEl) warningEl.remove();
+
+        if (process.is_sequential && process.steps && App.currentStepIndex < process.steps.length) {
+            const remaining = process.steps.length - App.currentStepIndex;
+            warningEl = document.createElement('p');
+            warningEl.className = 'steps-warning';
+            warningEl.style.cssText = 'color: var(--warning); font-weight: 600; margin-bottom: var(--space-md);';
+            warningEl.innerHTML = `<strong>Внимание:</strong> Остались невыполненные шаги (${remaining})`;
+            modal.querySelector('.modal-content').insertBefore(warningEl, commentInput);
         }
 
-        const comment = prompt('Добавьте комментарий (необязательно):');
-        this.stopProcess(comment || '');
+        // Показываем модальное окно
+        modal.classList.remove('hidden');
+    },
+
+    hideStopDialog() {
+        const modal = document.getElementById('finish-modal');
+        modal.classList.add('hidden');
+    },
+
+    async confirmStopProcess() {
+        if (!App.activeProcess || !App.activeRecord) return;
+
+        const commentInput = document.getElementById('comment-input');
+        const comment = commentInput.value.trim();
+
+        // Скрываем модальное окно
+        this.hideStopDialog();
+
+        // Завершаем процесс
+        await this.stopProcess(comment);
     },
 
     async stopProcess(comment) {
@@ -912,12 +1249,44 @@ const Actions = {
         UI.stopTimer();
         UI.hideElement('active-process');
         UI.hideElement('steps-container');
-        
+
         // Обновляем историю и статистику
         UI.renderHistory();
         UI.renderStats();
 
-        alert('Процесс завершен!');
+        // Показываем уведомление
+        this.showNotification('Процесс успешно завершён!', 'success');
+    },
+
+    showNotification(message, type = 'info') {
+        // Создаем элемент уведомления
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <span>${message}</span>
+        `;
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : 'var(--primary)'};
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 9999;
+            animation: slideUp 0.3s ease-out;
+            font-weight: 600;
+        `;
+
+        document.body.appendChild(notification);
+
+        // Удаляем через 3 секунды
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     },
 
     addPhoto(stepId = null) {
