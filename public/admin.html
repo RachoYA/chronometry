@@ -34,7 +34,7 @@
             <div class="admin-header-content">
                 <div>
                     <h1>👑 Админ-панель</h1>
-                    <p>Управление процессами, категориями и пользователями</p>
+                    <p>Управление хронометражем</p>
                 </div>
                 <div class="admin-user-info">
                     <span id="admin-username">admin</span>
@@ -45,22 +45,54 @@
 
         <div class="tabs">
             <div class="tab active" data-tab="processes">📋 Процессы</div>
-            <div class="tab" data-tab="categories">🏷️ Категории</div>
-            <div class="tab" data-tab="users">👥 Пользователи</div>
+            <div class="tab" data-tab="objects">🏢 Объекты</div>
+            <div class="tab" data-tab="groups">👥 Группы</div>
+            <div class="tab" data-tab="assignments">📌 Назначения</div>
+            <div class="tab" data-tab="users">👤 Пользователи</div>
             <div class="tab" data-tab="analytics">📊 Аналитика</div>
         </div>
 
         <!-- Вкладка: Процессы -->
         <div id="tab-processes" class="tab-content active">
+            <div class="section-header">
+                <h2>Процессы хронометража</h2>
+                <button class="btn btn-primary" onclick="openProcessModal()">+ Создать процесс</button>
+            </div>
             <div id="processes-grid">
                 <!-- Процессы загружаются динамически -->
             </div>
         </div>
 
-        <!-- Вкладка: Категории -->
-        <div id="tab-categories" class="tab-content">
-            <div id="categories-list">
-                <!-- Категории загружаются динамически -->
+        <!-- Вкладка: Объекты -->
+        <div id="tab-objects" class="tab-content">
+            <div class="section-header">
+                <h2>Объекты (магазины, склады)</h2>
+                <button class="btn btn-primary" onclick="openObjectModal()">+ Добавить объект</button>
+            </div>
+            <div id="objects-grid" class="objects-grid">
+                <!-- Объекты загружаются динамически -->
+            </div>
+        </div>
+
+        <!-- Вкладка: Группы -->
+        <div id="tab-groups" class="tab-content">
+            <div class="section-header">
+                <h2>Группы пользователей</h2>
+                <button class="btn btn-primary" onclick="openGroupModal()">+ Создать группу</button>
+            </div>
+            <div id="groups-grid" class="groups-grid">
+                <!-- Группы загружаются динамически -->
+            </div>
+        </div>
+
+        <!-- Вкладка: Назначения -->
+        <div id="tab-assignments" class="tab-content">
+            <div class="section-header">
+                <h2>Назначения (задания)</h2>
+                <button class="btn btn-primary" onclick="openAssignmentModal()">+ Создать назначение</button>
+            </div>
+            <div id="assignments-grid" class="assignments-grid">
+                <!-- Назначения загружаются динамически -->
             </div>
         </div>
 
@@ -78,6 +110,7 @@
                         <th>ID</th>
                         <th>Логин</th>
                         <th>Имя</th>
+                        <th>Группы</th>
                         <th>Роль</th>
                         <th>Статус</th>
                         <th>Дата регистрации</th>
@@ -116,6 +149,12 @@
                             <option value="">Все</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label>Объект:</label>
+                        <select id="filter-object" class="form-select">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
                     <button class="btn btn-primary" onclick="loadAnalytics()">Применить</button>
                 </div>
             </div>
@@ -146,7 +185,7 @@
 
             <!-- Статистика по процессам -->
             <div class="analytics-section card">
-                <h3>📋 По процессам</h3>
+                <h3>📋 По процессам <small>(клик для детализации)</small></h3>
                 <div id="stats-by-process" class="stats-table-container">
                     <!-- Загружается динамически -->
                 </div>
@@ -170,6 +209,7 @@
                                 <th>Дата</th>
                                 <th>Пользователь</th>
                                 <th>Процесс</th>
+                                <th>Объект</th>
                                 <th>Длительность</th>
                                 <th>Фото</th>
                                 <th>Комментарий</th>
@@ -182,9 +222,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Кнопка добавления -->
-        <button class="btn-add" id="btn-add-process">+</button>
     </div>
 
     <!-- Модальное окно: Создание/Редактирование процесса -->
@@ -253,6 +290,207 @@
                     <button type="submit" class="btn btn-primary">💾 Сохранить процесс</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Объекты -->
+    <div id="object-modal" class="modal-overlay">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title" id="object-modal-title">Добавить объект</h2>
+                <button onclick="closeObjectModal()">&times;</button>
+            </div>
+            <form id="object-form">
+                <input type="hidden" id="object-id">
+                <div class="form-group">
+                    <label class="form-label">Название *</label>
+                    <input type="text" id="object-name" class="form-input" placeholder="Магазин №1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адрес</label>
+                    <input type="text" id="object-address" class="form-input" placeholder="ул. Примерная, д. 1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea id="object-description" class="form-textarea" rows="2" placeholder="Дополнительная информация..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button type="button" onclick="closeObjectModal()" class="btn btn-secondary">Отмена</button>
+                    <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Группы -->
+    <div id="group-modal" class="modal-overlay">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-title" id="group-modal-title">Создать группу</h2>
+                <button onclick="closeGroupModal()">&times;</button>
+            </div>
+            <form id="group-form">
+                <input type="hidden" id="group-id">
+                <div class="form-group">
+                    <label class="form-label">Название группы *</label>
+                    <input type="text" id="group-name" class="form-input" placeholder="Склад" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea id="group-description" class="form-textarea" rows="2" placeholder="Описание группы..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Цвет</label>
+                    <input type="color" id="group-color" class="form-color" value="#607D8B">
+                </div>
+                <div class="btn-group">
+                    <button type="button" onclick="closeGroupModal()" class="btn btn-secondary">Отмена</button>
+                    <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Участники группы -->
+    <div id="group-members-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Участники группы: <span id="group-members-title"></span></h2>
+                <button onclick="closeGroupMembersModal()">&times;</button>
+            </div>
+            <div class="group-members-content">
+                <div class="add-member-section">
+                    <select id="add-member-select" class="form-select">
+                        <option value="">Выберите пользователя</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addMemberToGroup()">+ Добавить</button>
+                </div>
+                <div id="group-members-list" class="members-list">
+                    <!-- Участники загружаются динамически -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Назначения -->
+    <div id="assignment-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="assignment-modal-title">Создать назначение</h2>
+                <button onclick="closeAssignmentModal()">&times;</button>
+            </div>
+            <form id="assignment-form">
+                <input type="hidden" id="assignment-id">
+                <div class="form-group">
+                    <label class="form-label">Название задания *</label>
+                    <input type="text" id="assignment-name" class="form-input" placeholder="Ежедневная приемка товара" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Описание</label>
+                    <textarea id="assignment-description" class="form-textarea" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Процесс *</label>
+                        <select id="assignment-process" class="form-select" required>
+                            <option value="">Выберите процесс</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Объект</label>
+                        <select id="assignment-object" class="form-select">
+                            <option value="">Любой объект</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Пользователь</label>
+                        <select id="assignment-user" class="form-select">
+                            <option value="">Не выбран</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Или группа</label>
+                        <select id="assignment-group" class="form-select">
+                            <option value="">Не выбрана</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Дата начала</label>
+                        <input type="date" id="assignment-start-date" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дата окончания</label>
+                        <input type="date" id="assignment-end-date" class="form-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Приоритет (0-10)</label>
+                    <input type="number" id="assignment-priority" class="form-input" min="0" max="10" value="0">
+                </div>
+                <div class="btn-group">
+                    <button type="button" onclick="closeAssignmentModal()" class="btn btn-secondary">Отмена</button>
+                    <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Детальная аналитика процесса -->
+    <div id="process-analytics-modal" class="modal-overlay">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2 class="modal-title">📊 Детальная аналитика: <span id="process-analytics-title"></span></h2>
+                <button onclick="closeProcessAnalyticsModal()">&times;</button>
+            </div>
+            <div class="process-analytics-content">
+                <!-- Сводка по процессу -->
+                <div class="analytics-summary mini">
+                    <div class="summary-card">
+                        <div class="summary-value" id="pa-total-executions">0</div>
+                        <div class="summary-label">Выполнений</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" id="pa-avg-duration">0м</div>
+                        <div class="summary-label">Среднее время</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" id="pa-min-duration">0м</div>
+                        <div class="summary-label">Мин. время</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" id="pa-max-duration">0м</div>
+                        <div class="summary-label">Макс. время</div>
+                    </div>
+                </div>
+
+                <!-- Статистика по шагам -->
+                <div class="analytics-section">
+                    <h4>⏱️ Время по шагам</h4>
+                    <div id="pa-step-stats" class="step-stats-container">
+                        <!-- Загружается динамически -->
+                    </div>
+                </div>
+
+                <!-- Статистика по пользователям -->
+                <div class="analytics-section">
+                    <h4>👥 По пользователям</h4>
+                    <div id="pa-user-stats" class="stats-table-container">
+                        <!-- Загружается динамически -->
+                    </div>
+                </div>
+
+                <!-- Статистика по объектам -->
+                <div class="analytics-section">
+                    <h4>🏢 По объектам</h4>
+                    <div id="pa-object-stats" class="stats-table-container">
+                        <!-- Загружается динамически -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

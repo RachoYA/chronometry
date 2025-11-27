@@ -6,7 +6,14 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "node scripts/init-db.js"
+    "test": "jest --coverage --detectOpenHandles",
+    "test:unit": "jest --testPathPattern=tests/unit --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "lint": "eslint src server.js",
+    "predeploy": "npm run test:unit",
+    "deploy": "npm run predeploy && ./deploy.sh"
   },
   "keywords": [
     "chronometry",
@@ -23,6 +30,10 @@
     "pg": "^8.13.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "@playwright/test": "^1.49.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.0.0"
   }
 }

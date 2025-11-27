@@ -81,6 +81,7 @@
                 <div class="card-body">
                     <div class="process-info">
                         <div class="process-name" id="active-process-name">—</div>
+                        <div id="active-object-name" class="active-object-name"></div>
                         <div class="process-time" id="active-process-time">00:00:00</div>
                         <div class="process-started">Начат: <span id="active-process-started">—</span></div>
                     </div>
@@ -93,6 +94,7 @@
                         </div>
                         <div class="current-step-name" id="current-step-name">—</div>
                         <div class="current-step-desc" id="current-step-desc"></div>
+                        <div id="step-timer" class="step-timer">Время шага: 00:00</div>
                     </div>
 
                     <!-- Кнопки действий -->
@@ -109,12 +111,32 @@
                 <!-- Шаги загружаются динамически -->
             </div>
 
-            <!-- Список процессов -->
-            <div class="card">
+            <!-- Мои назначения -->
+            <div id="assignments-section" class="card">
                 <div class="card-header">
-                    <h3>📋 Начать работу</h3>
+                    <h3>📌 Мои задания</h3>
                 </div>
                 <div class="card-body">
+                    <div id="assignments-list" class="assignments-list">
+                        <!-- Назначения загружаются динамически -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Список процессов (свободный запуск) -->
+            <div class="card">
+                <div class="card-header collapsible" id="free-processes-header">
+                    <h3>📋 Свободный запуск</h3>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="card-body" id="free-processes-body">
+                    <!-- Выбор объекта -->
+                    <div class="object-selector" id="object-selector">
+                        <label class="selector-label">Выберите объект:</label>
+                        <select id="object-select" class="input select-input">
+                            <option value="">-- Выберите объект --</option>
+                        </select>
+                    </div>
                     <div id="process-list" class="process-list">
                         <!-- Процессы загружаются динамически -->
                     </div>

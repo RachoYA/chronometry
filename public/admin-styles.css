@@ -1168,3 +1168,351 @@ select:hover {
         font-size: var(--text-2xl);
     }
 }
+
+/* ==================== SECTION HEADER ==================== */
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xl);
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.section-header h2 {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+/* ==================== OBJECTS GRID ==================== */
+
+.objects-grid,
+.groups-grid,
+.assignments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-lg);
+}
+
+.object-card,
+.group-card,
+.assignment-card {
+    background: var(--surface-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+    border: 1px solid var(--surface-400);
+}
+
+.object-card:hover,
+.group-card:hover,
+.assignment-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+    border-color: var(--primary);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-md);
+}
+
+.card-title {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-actions {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.card-address {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.card-description {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-top: var(--space-md);
+}
+
+/* ==================== ASSIGNMENTS ==================== */
+
+.assignment-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--surface-400);
+}
+
+.assignment-details div {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* ==================== STATUS BADGES ==================== */
+
+.status-badge {
+    display: inline-block;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.status-inactive {
+    background: rgba(107, 114, 128, 0.2);
+    color: var(--text-secondary);
+}
+
+.status-pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.status-rejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--error);
+}
+
+/* ==================== GROUP MEMBERS MODAL ==================== */
+
+.group-members-content {
+    padding: var(--space-lg) 0;
+}
+
+.add-member-section {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-xl);
+    border-bottom: 1px solid var(--surface-400);
+}
+
+.add-member-section .form-select {
+    flex: 1;
+}
+
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--surface-300);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+}
+
+.member-item:hover {
+    background: var(--surface-400);
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.member-username {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.empty-state-mini {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+/* ==================== MODAL SIZES ==================== */
+
+.modal.modal-sm {
+    max-width: 500px;
+}
+
+.modal.modal-lg {
+    max-width: 1100px;
+}
+
+/* ==================== FORM COLOR INPUT ==================== */
+
+.form-color {
+    width: 60px;
+    height: 44px;
+    padding: var(--space-xs);
+    border: 2px solid var(--surface-400);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    background: var(--surface-300);
+}
+
+.form-color::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.form-color::-webkit-color-swatch {
+    border: none;
+    border-radius: var(--radius-md);
+}
+
+/* ==================== FORM SELECT SMALL ==================== */
+
+.form-select-sm {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-sm);
+    border: 1px solid var(--surface-400);
+    border-radius: var(--radius-md);
+    background: var(--surface-300);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+
+.action-buttons {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+/* ==================== PROCESS ANALYTICS MODAL ==================== */
+
+.process-analytics-content {
+    padding: var(--space-lg) 0;
+}
+
+.analytics-summary.mini {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.analytics-summary.mini .summary-card {
+    padding: var(--space-md);
+}
+
+.analytics-summary.mini .summary-value {
+    font-size: var(--text-xl);
+}
+
+.analytics-summary.mini .summary-label {
+    font-size: var(--text-xs);
+}
+
+/* ==================== STEP STATS ==================== */
+
+.step-stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.step-stat-item {
+    background: var(--surface-300);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    border-left: 4px solid var(--primary);
+}
+
+.step-stat-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.step-stat-number {
+    background: var(--primary);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--text-sm);
+}
+
+.step-stat-name {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.step-stat-expected {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.step-stat-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.step-stat-values span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* ==================== ANALYTICS SECTION ==================== */
+
+.analytics-section h4 {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--primary-light);
+    margin-bottom: var(--space-md);
+}
+
+@media (max-width: 768px) {
+    .objects-grid,
+    .groups-grid,
+    .assignments-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-summary.mini {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .add-member-section {
+        flex-direction: column;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

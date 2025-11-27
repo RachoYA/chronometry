@@ -1373,6 +1373,206 @@ textarea:focus-visible {
     gap: var(--space-sm);
 }
 
+/* ==================== ASSIGNMENTS ==================== */
+
+.assignments-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.assignment-item {
+    background: var(--surface-300);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    border: 1px solid var(--surface-400);
+    border-left: 4px solid var(--primary);
+    position: relative;
+}
+
+.assignment-item:hover {
+    background: var(--surface-400);
+    box-shadow: var(--shadow-lg), 0 0 30px var(--primary-glow);
+    transform: translateY(-2px);
+}
+
+.assignment-item.priority-high {
+    border-left-color: var(--error);
+}
+
+.assignment-item.priority-medium {
+    border-left-color: var(--warning);
+}
+
+.assignment-item.priority-low {
+    border-left-color: var(--success);
+}
+
+.assignment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-sm);
+}
+
+.assignment-name {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.assignment-priority {
+    font-size: var(--text-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.assignment-priority.high {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--error);
+}
+
+.assignment-priority.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.assignment-priority.low {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.assignment-process {
+    font-size: var(--text-sm);
+    color: var(--primary-light);
+    margin-bottom: var(--space-xs);
+    font-weight: 600;
+}
+
+.assignment-object {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.assignment-dates {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-sm);
+}
+
+.assignments-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-xl);
+    font-size: var(--text-sm);
+}
+
+/* ==================== OBJECT SELECTOR ==================== */
+
+.object-selector {
+    margin-bottom: var(--space-lg);
+}
+
+.selector-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.select-input {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--surface-300);
+    border: 2px solid var(--surface-400);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+    margin-bottom: 0;
+}
+
+.select-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+    outline: none;
+}
+
+.select-input option {
+    background: var(--surface-300);
+    color: var(--text-primary);
+}
+
+/* ==================== COLLAPSIBLE SECTIONS ==================== */
+
+.card-header.collapsible {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background var(--transition-fast);
+}
+
+.card-header.collapsible:hover {
+    background: var(--surface-300);
+}
+
+.collapse-icon {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.card-header.collapsible.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.card-body.collapsed {
+    display: none;
+}
+
+/* ==================== ACTIVE OBJECT NAME ==================== */
+
+.active-object-name {
+    font-size: var(--text-sm);
+    color: var(--secondary);
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+}
+
+.active-object-name:empty {
+    display: none;
+}
+
+/* ==================== STEP TIMER ==================== */
+
+.step-timer {
+    font-size: var(--text-sm);
+    color: var(--secondary-light);
+    font-weight: 600;
+    margin-top: var(--space-sm);
+    font-family: var(--font-mono);
+}
+
 /* ==================== PWA AUTH STYLES ==================== */
 
 .auth-container {

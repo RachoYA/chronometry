@@ -13,7 +13,7 @@ const db = new Database();
 const sessions = new Map();
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Увеличиваем лимит для фото
 app.use(express.static('public'));
 
 // Утилиты для работы с паролями
@@ -428,6 +428,326 @@ app.get('/api/admin/analytics/by-user', authMiddleware, adminMiddleware, async (
         const { startDate, endDate } = req.query;
         const stats = await db.getStatsByUser(startDate, endDate);
         res.json(stats);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Детальная аналитика по процессу
+app.get('/api/admin/analytics/process/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const analytics = await db.getProcessDetailedAnalytics(parseInt(req.params.id), startDate, endDate);
+        res.json(analytics);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Аналитика по объекту
+app.get('/api/admin/analytics/object/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const analytics = await db.getObjectAnalytics(parseInt(req.params.id), startDate, endDate);
+        res.json(analytics);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Аналитика по группе
+app.get('/api/admin/analytics/group/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const analytics = await db.getGroupAnalytics(parseInt(req.params.id), startDate, endDate);
+        res.json(analytics);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ GROUPS API ============
+
+app.get('/api/admin/groups', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const groups = await db.getAllGroups();
+        res.json(groups);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/admin/groups/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const group = await db.getGroupById(parseInt(req.params.id));
+        if (group) {
+            group.members = await db.getGroupMembers(parseInt(req.params.id));
+        }
+        res.json(group);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/admin/groups', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const result = await db.createGroup(req.body);
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/admin/groups/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.updateGroup(parseInt(req.params.id), req.body);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/admin/groups/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.deleteGroup(parseInt(req.params.id));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Участники группы
+app.post('/api/admin/groups/:id/members', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        await db.addUserToGroup(userId, parseInt(req.params.id));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/admin/groups/:groupId/members/:userId', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.removeUserFromGroup(parseInt(req.params.userId), parseInt(req.params.groupId));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ OBJECTS API ============
+
+app.get('/api/admin/objects', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const objects = await db.getAllObjects();
+        res.json(objects);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/admin/objects/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const object = await db.getObjectById(parseInt(req.params.id));
+        res.json(object);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/admin/objects', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const result = await db.createObject(req.body);
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/admin/objects/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.updateObject(parseInt(req.params.id), req.body);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/admin/objects/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.deleteObject(parseInt(req.params.id));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ ASSIGNMENTS API ============
+
+app.get('/api/admin/assignments', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const assignments = await db.getAllAssignments();
+        res.json(assignments);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/admin/assignments/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const assignment = await db.getAssignmentById(parseInt(req.params.id));
+        res.json(assignment);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/admin/assignments', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const result = await db.createAssignment(req.body);
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/admin/assignments/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.updateAssignment(parseInt(req.params.id), req.body);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/admin/assignments/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await db.deleteAssignment(parseInt(req.params.id));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ USER API (расширенный для PWA) ============
+
+// Получить назначения для текущего пользователя
+app.get('/api/assignments', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const assignments = await db.getUserAssignments(req.user.id);
+        res.json(assignments);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Получить объекты (для выбора при записи)
+app.get('/api/objects', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const objects = await db.getAllObjects();
+        res.json(objects);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Начать запись времени с контекстом (объект, назначение)
+app.post('/api/records/start', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const { processId, objectId, assignmentId } = req.body;
+        const result = await db.startTimeRecordWithContext(req.user.id, processId, objectId, assignmentId);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Остановить запись времени
+app.post('/api/records/:id/stop', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const { comment } = req.body;
+        const result = await db.stopTimeRecord(parseInt(req.params.id), comment);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Тайминг шагов
+app.post('/api/records/:recordId/steps/:stepId/start', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const result = await db.startStepTiming(parseInt(req.params.recordId), parseInt(req.params.stepId));
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/step-timings/:id/stop', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const result = await db.stopStepTiming(parseInt(req.params.id));
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Загрузка фото
+app.post('/api/records/:recordId/photos', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const { stepId, fileData, comment } = req.body;
+        const result = await db.savePhoto(parseInt(req.params.recordId), stepId, fileData, comment);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Получить фото записи
+app.get('/api/records/:recordId/photos', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const photos = await db.getRecordPhotos(parseInt(req.params.recordId));
+        res.json(photos);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Получить тайминги шагов для записи
+app.get('/api/records/:recordId/step-timings', authMiddleware, approvedMiddleware, async (req, res) => {
+    try {
+        const timings = await db.getStepTimings(parseInt(req.params.recordId));
+        res.json(timings);
     } catch (error) {
         console.error('Ошибка:', error);
         res.status(500).json({ error: error.message });

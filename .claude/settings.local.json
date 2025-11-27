@@ -61,7 +61,17 @@
       "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && docker-compose up -d --build\")",
       "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && git pull origin main && docker-compose up -d --build\")",
       "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"docker-compose ps && echo ''---'' && docker-compose logs --tail=30 app\")",
-      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && docker-compose ps && echo ''---'' && docker-compose logs --tail=30 app\")"
+      "Bash(sshpass -p 'cv7AE5HpRC' ssh -o StrictHostKeyChecking=no racho@89.232.184.218 \"cd ~/chronometry && docker-compose ps && echo ''---'' && docker-compose logs --tail=30 app\")",
+      "Bash(sshpass:*)",
+      "Bash(createdb:*)",
+      "Bash(psql:*)",
+      "Bash(cat:*)",
+      "Bash(PORT=4000 npm start)",
+      "Bash(npm run test:unit:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(npx playwright --version)",
+      "Bash(npx playwright test:*)",
+      "Bash(./deploy-local.sh:*)"
     ],
     "deny": [],
     "ask": []

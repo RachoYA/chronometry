@@ -4,10 +4,18 @@ const App = {
     authToken: localStorage.getItem('userToken'),
     activeProcess: null,
     activeRecord: null,
+    activeAssignment: null,
+    activeObject: null,
     currentStepIndex: 0,
     completedSteps: [],
+    stepTimings: [], // Время по каждому шагу (серверные ID)
+    currentStepStartTime: null, // Время начала текущего шага
+    currentStepTimingId: null, // ID текущего step_timing на сервере
     timerInterval: null,
-    processes: [] // Теперь загружаются с сервера
+    stepTimerInterval: null,
+    processes: [],
+    objects: [],
+    assignments: []
 };
 
 // API для работы с сервером
@@ -68,6 +76,7 @@ const API = {
         }
     },
 
+    // Получить процессы
     async getProcesses() {
         try {
             const response = await this.request('/api/processes');
@@ -75,11 +84,123 @@ const API = {
             return await response.json();
         } catch (error) {
             console.error('Error loading processes:', error);
-            // Возвращаем кэшированные процессы если есть
             return App.processes.length > 0 ? App.processes : [];
         }
     },
 
+    // Получить объекты
+    async getObjects() {
+        try {
+            const response = await this.request('/api/objects');
+            if (!response.ok) throw new Error('Failed to load objects');
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading objects:', error);
+            return [];
+        }
+    },
+
+    // Получить назначения для пользователя
+    async getAssignments() {
+        try {
+            const response = await this.request('/api/assignments');
+            if (!response.ok) throw new Error('Failed to load assignments');
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading assignments:', error);
+            return [];
+        }
+    },
+
+    // Начать запись времени (новый API)
+    async startRecord(processId, objectId = null, assignmentId = null) {
+        try {
+            const response = await this.request('/api/records/start', {
+                method: 'POST',
+                body: JSON.stringify({ processId, objectId, assignmentId })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to start record');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error starting record:', error);
+            throw error;
+        }
+    },
+
+    // Остановить запись времени
+    async stopRecord(recordId, comment = '') {
+        try {
+            const response = await this.request(`/api/records/${recordId}/stop`, {
+                method: 'POST',
+                body: JSON.stringify({ comment })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to stop record');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error stopping record:', error);
+            throw error;
+        }
+    },
+
+    // Начать тайминг шага
+    async startStepTiming(recordId, stepId) {
+        try {
+            const response = await this.request(`/api/records/${recordId}/steps/${stepId}/start`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to start step timing');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error starting step timing:', error);
+            throw error;
+        }
+    },
+
+    // Остановить тайминг шага
+    async stopStepTiming(stepTimingId) {
+        try {
+            const response = await this.request(`/api/step-timings/${stepTimingId}/stop`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to stop step timing');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error stopping step timing:', error);
+            throw error;
+        }
+    },
+
+    // Загрузить фото
+    async uploadPhoto(recordId, photoData, stepId = null) {
+        try {
+            const response = await this.request(`/api/records/${recordId}/photos`, {
+                method: 'POST',
+                body: JSON.stringify({ photoData, stepId })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to upload photo');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error uploading photo:', error);
+            throw error;
+        }
+    },
+
+    // Синхронизация (для оффлайн записей)
     async syncRecord(record) {
         try {
             const response = await this.request('/api/sync/records', {
@@ -97,7 +218,7 @@ const API = {
 // IndexedDB для локального хранения
 const DB = {
     name: 'ChronometryDB',
-    version: 2, // Увеличили версию для новой схемы
+    version: 3, // Увеличили версию для новой схемы
     db: null,
 
     async init() {
@@ -121,7 +242,7 @@ const DB = {
                     recordsStore.createIndex('startTime', 'startTime', { unique: false });
                 }
 
-                // Хранилище шагов (НОВОЕ)
+                // Хранилище шагов
                 if (!db.objectStoreNames.contains('steps')) {
                     const stepsStore = db.createObjectStore('steps', { keyPath: 'id', autoIncrement: true });
                     stepsStore.createIndex('recordId', 'recordId', { unique: false });
@@ -132,7 +253,7 @@ const DB = {
                 if (!db.objectStoreNames.contains('photos')) {
                     const photosStore = db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
                     photosStore.createIndex('recordId', 'recordId', { unique: false });
-                    photosStore.createIndex('stepId', 'stepId', { unique: false }); // НОВОЕ
+                    photosStore.createIndex('stepId', 'stepId', { unique: false });
                 }
 
                 // Хранилище пользователя
@@ -140,9 +261,19 @@ const DB = {
                     db.createObjectStore('user', { keyPath: 'id' });
                 }
 
-                // Кэш процессов (НОВОЕ)
+                // Кэш процессов
                 if (!db.objectStoreNames.contains('processes')) {
                     db.createObjectStore('processes', { keyPath: 'id' });
+                }
+
+                // Кэш объектов (НОВОЕ)
+                if (!db.objectStoreNames.contains('objects')) {
+                    db.createObjectStore('objects', { keyPath: 'id' });
+                }
+
+                // Кэш назначений (НОВОЕ)
+                if (!db.objectStoreNames.contains('assignments')) {
+                    db.createObjectStore('assignments', { keyPath: 'id' });
                 }
             };
         });
@@ -174,15 +305,8 @@ const DB = {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['processes'], 'readwrite');
             const store = transaction.objectStore('processes');
-
-            // Очищаем старый кэш
             store.clear();
-
-            // Добавляем новые процессы
-            processes.forEach(process => {
-                store.put(process);
-            });
-
+            processes.forEach(process => store.put(process));
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
         });
@@ -193,7 +317,48 @@ const DB = {
             const transaction = this.db.transaction(['processes'], 'readonly');
             const store = transaction.objectStore('processes');
             const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
 
+    async cacheObjects(objects) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['objects'], 'readwrite');
+            const store = transaction.objectStore('objects');
+            store.clear();
+            objects.forEach(obj => store.put(obj));
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    },
+
+    async getCachedObjects() {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['objects'], 'readonly');
+            const store = transaction.objectStore('objects');
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    async cacheAssignments(assignments) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['assignments'], 'readwrite');
+            const store = transaction.objectStore('assignments');
+            store.clear();
+            assignments.forEach(a => store.put(a));
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    },
+
+    async getCachedAssignments() {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['assignments'], 'readonly');
+            const store = transaction.objectStore('assignments');
+            const request = store.getAll();
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -204,7 +369,6 @@ const DB = {
             const transaction = this.db.transaction(['records'], 'readwrite');
             const store = transaction.objectStore('records');
             const request = store.add(record);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -215,7 +379,6 @@ const DB = {
             const transaction = this.db.transaction(['records'], 'readonly');
             const store = transaction.objectStore('records');
             const request = store.get(id);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -231,11 +394,9 @@ const DB = {
                 const record = getRequest.result;
                 const updatedRecord = { ...record, ...data };
                 const updateRequest = store.put(updatedRecord);
-
                 updateRequest.onsuccess = () => resolve(updatedRecord);
                 updateRequest.onerror = () => reject(updateRequest.error);
             };
-
             getRequest.onerror = () => reject(getRequest.error);
         });
     },
@@ -261,18 +422,15 @@ const DB = {
                     resolve(activeRecord);
                 }
             };
-
             request.onerror = () => reject(request.error);
         });
     },
 
-    // НОВОЕ: Управление шагами
     async addStepCompletion(stepData) {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['steps'], 'readwrite');
             const store = transaction.objectStore('steps');
             const request = store.add(stepData);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -284,7 +442,6 @@ const DB = {
             const store = transaction.objectStore('steps');
             const index = store.index('recordId');
             const request = index.getAll(recordId);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -310,7 +467,6 @@ const DB = {
                     resolve(records);
                 }
             };
-
             request.onerror = () => reject(request.error);
         });
     },
@@ -341,7 +497,6 @@ const DB = {
                     resolve({ taskCount, totalTime });
                 }
             };
-
             request.onerror = () => reject(request.error);
         });
     },
@@ -351,7 +506,6 @@ const DB = {
             const transaction = this.db.transaction(['photos'], 'readwrite');
             const store = transaction.objectStore('photos');
             const request = store.add(photo);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -363,7 +517,6 @@ const DB = {
             const store = transaction.objectStore('photos');
             const index = store.index('recordId');
             const request = index.count(recordId);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -375,7 +528,6 @@ const DB = {
             const store = transaction.objectStore('photos');
             const index = store.index('stepId');
             const request = index.count(stepId);
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
@@ -413,11 +565,19 @@ const Utils = {
         });
     },
 
+    formatDate(date) {
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    },
+
     getCurrentTimer(startTime) {
         const now = new Date();
         const start = new Date(startTime);
-        const diff = Math.floor((now - start) / 1000);
-        return diff;
+        return Math.floor((now - start) / 1000);
     },
 
     formatTimerDisplay(seconds) {
@@ -428,16 +588,28 @@ const Utils = {
         return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     },
 
+    formatStepTimer(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    },
+
     getCategoryColor(categoryColor) {
         return categoryColor || '#2196F3';
     },
 
     getCategoryIcon(categoryIcon) {
         return categoryIcon || '📋';
+    },
+
+    getPriorityLabel(priority) {
+        if (priority >= 2) return { text: 'Высокий', class: 'high' };
+        if (priority >= 1) return { text: 'Средний', class: 'medium' };
+        return { text: 'Низкий', class: 'low' };
     }
 };
 
-// UI управление (будет продолжено...)
+// UI управление
 const UI = {
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(screen => {
@@ -463,7 +635,71 @@ const UI = {
         }
     },
 
-    // НОВОЕ: Отображение процессов с учетом категорий и шагов
+    // Отображение назначений
+    renderAssignments() {
+        const container = document.getElementById('assignments-list');
+        if (!container) return;
+
+        if (App.assignments.length === 0) {
+            container.innerHTML = '<div class="assignments-empty">Нет активных заданий</div>';
+            return;
+        }
+
+        container.innerHTML = App.assignments.map(assignment => {
+            const priority = Utils.getPriorityLabel(assignment.priority);
+            const priorityClass = assignment.priority >= 2 ? 'priority-high' :
+                                  assignment.priority >= 1 ? 'priority-medium' : 'priority-low';
+
+            return `
+                <div class="assignment-item ${priorityClass}" data-assignment-id="${assignment.id}">
+                    <div class="assignment-header">
+                        <div class="assignment-name">${assignment.name}</div>
+                        <span class="assignment-priority ${priority.class}">${priority.text}</span>
+                    </div>
+                    <div class="assignment-process">📋 ${assignment.process_name}</div>
+                    ${assignment.object_name ? `
+                        <div class="assignment-object">🏢 ${assignment.object_name}</div>
+                    ` : ''}
+                    ${assignment.start_date || assignment.end_date ? `
+                        <div class="assignment-dates">
+                            ${assignment.start_date ? `С ${Utils.formatDate(assignment.start_date)}` : ''}
+                            ${assignment.end_date ? ` до ${Utils.formatDate(assignment.end_date)}` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+
+        // Добавляем обработчики
+        container.querySelectorAll('.assignment-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const assignmentId = parseInt(item.dataset.assignmentId);
+                Actions.startFromAssignment(assignmentId);
+            });
+        });
+    },
+
+    // Отображение списка объектов
+    renderObjectSelector() {
+        const select = document.getElementById('object-select');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Выберите объект --</option>';
+
+        App.objects.forEach(obj => {
+            if (obj.is_active) {
+                const option = document.createElement('option');
+                option.value = obj.id;
+                option.textContent = obj.name;
+                if (obj.address) {
+                    option.textContent += ` (${obj.address})`;
+                }
+                select.appendChild(option);
+            }
+        });
+    },
+
+    // Отображение процессов
     renderProcessList() {
         const container = document.getElementById('process-list');
         if (!container) return;
@@ -515,7 +751,7 @@ const UI = {
         });
     },
 
-    // Отображение шагов процесса с кнопками действий
+    // Отображение шагов процесса
     renderSteps(process, completedStepIds = []) {
         const container = document.getElementById('steps-container');
         if (!container) return;
@@ -631,6 +867,7 @@ const UI = {
             if (!process) return '';
 
             const photosCount = await DB.getPhotosCount(record.id);
+            const object = record.objectId ? App.objects.find(o => o.id === record.objectId) : null;
 
             return `
                 <div class="history-item">
@@ -638,6 +875,9 @@ const UI = {
                         <div class="history-item-name">${process.name}</div>
                         <div class="history-item-time">${Utils.formatTime(record.startTime)}</div>
                     </div>
+                    ${object ? `
+                        <div class="history-item-object">🏢 ${object.name}</div>
+                    ` : ''}
                     ${record.endTime ? `
                         <div class="history-item-duration">⏱ ${Utils.formatDuration(record.duration)}</div>
                     ` : `
@@ -673,6 +913,7 @@ const UI = {
             UI.hideElement('active-process');
             UI.hideElement('current-step-info');
             document.getElementById('complete-step-btn')?.classList.add('hidden');
+            document.getElementById('active-object-name').textContent = '';
             return;
         }
 
@@ -682,39 +923,45 @@ const UI = {
         document.getElementById('active-process-name').textContent = process?.name || 'Процесс';
         document.getElementById('active-process-started').textContent = Utils.formatTime(App.activeRecord.startTime);
 
+        // Показываем объект если есть
+        const objectNameEl = document.getElementById('active-object-name');
+        if (App.activeObject) {
+            objectNameEl.textContent = `🏢 ${App.activeObject.name}`;
+        } else {
+            objectNameEl.textContent = '';
+        }
+
         // Обновляем UI для многошаговых процессов
         const currentStepInfo = document.getElementById('current-step-info');
         const completeStepBtn = document.getElementById('complete-step-btn');
+        const stepTimerEl = document.getElementById('step-timer');
 
         if (process && process.is_sequential && process.steps && process.steps.length > 0) {
             const currentStep = process.steps[App.currentStepIndex];
             const allCompleted = App.currentStepIndex >= process.steps.length;
 
             if (allCompleted) {
-                // Все шаги выполнены
                 currentStepInfo.classList.remove('hidden');
                 document.getElementById('step-progress').textContent = `${process.steps.length}/${process.steps.length}`;
                 document.getElementById('current-step-name').textContent = '🎉 Все шаги выполнены!';
                 document.getElementById('current-step-desc').textContent = 'Можете завершить процесс';
+                stepTimerEl.style.display = 'none';
                 completeStepBtn.classList.add('hidden');
             } else {
-                // Показываем текущий шаг
                 currentStepInfo.classList.remove('hidden');
                 document.getElementById('step-progress').textContent = `${App.currentStepIndex + 1}/${process.steps.length}`;
                 document.getElementById('current-step-name').textContent = currentStep.name;
                 document.getElementById('current-step-desc').textContent = currentStep.description || '';
+                stepTimerEl.style.display = 'block';
 
-                // Показываем кнопку завершения шага
                 completeStepBtn.classList.remove('hidden');
                 completeStepBtn.textContent = currentStep.requires_photo
                     ? '📷 + ✓ Завершить шаг'
                     : '✓ Шаг выполнен';
             }
 
-            // Отображаем список шагов (сворачиваемый)
             UI.renderSteps(process, App.completedSteps.map(s => s.stepId));
         } else {
-            // Обычный процесс без шагов
             currentStepInfo.classList.add('hidden');
             completeStepBtn.classList.add('hidden');
             UI.hideElement('steps-container');
@@ -742,10 +989,34 @@ const UI = {
             clearInterval(App.timerInterval);
             App.timerInterval = null;
         }
+    },
+
+    startStepTimer() {
+        if (App.stepTimerInterval) {
+            clearInterval(App.stepTimerInterval);
+        }
+
+        const updateStepTimer = () => {
+            if (App.currentStepStartTime) {
+                const seconds = Utils.getCurrentTimer(App.currentStepStartTime);
+                const stepTimerEl = document.getElementById('step-timer');
+                if (stepTimerEl) {
+                    stepTimerEl.textContent = `Время шага: ${Utils.formatStepTimer(seconds)}`;
+                }
+            }
+        };
+
+        updateStepTimer();
+        App.stepTimerInterval = setInterval(updateStepTimer, 1000);
+    },
+
+    stopStepTimer() {
+        if (App.stepTimerInterval) {
+            clearInterval(App.stepTimerInterval);
+            App.stepTimerInterval = null;
+        }
     }
 };
-
-// Действия (Actions) - будет продолжено в следующей части
 
 // Действия приложения
 const Actions = {
@@ -766,7 +1037,6 @@ const Actions = {
                 await DB.saveUser(App.user);
                 await this.loadApp();
             } else {
-                // Токен недействителен
                 App.authToken = null;
                 localStorage.removeItem('userToken');
                 UI.showScreen('auth-screen');
@@ -795,10 +1065,7 @@ const Actions = {
             UI.updateConnectionStatus(false);
         });
 
-        // Начальный статус
         UI.updateConnectionStatus(navigator.onLine);
-
-        // Обработчики событий
         this.setupEventListeners();
     },
 
@@ -806,13 +1073,19 @@ const Actions = {
         UI.showScreen('main-screen');
         document.getElementById('user-greeting').textContent = `Привет, ${App.user.name}!`;
 
-        // Загрузка процессов с сервера
-        await this.loadProcesses();
+        // Загрузка данных
+        await Promise.all([
+            this.loadProcesses(),
+            this.loadObjects(),
+            this.loadAssignments()
+        ]);
 
         // Загрузка активного процесса
         await this.loadActiveProcess();
 
         // Отображение UI
+        UI.renderAssignments();
+        UI.renderObjectSelector();
         UI.renderProcessList();
         UI.renderHistory();
         UI.renderStats();
@@ -820,21 +1093,52 @@ const Actions = {
 
     async loadProcesses() {
         try {
-            // Пытаемся загрузить с сервера
             if (navigator.onLine) {
                 const processes = await API.getProcesses();
                 App.processes = processes;
                 await DB.cacheProcesses(processes);
             } else {
-                // Загружаем из кэша если оффлайн
                 const cached = await DB.getCachedProcesses();
-                App.processes = cached.length > 0 ? cached : App.processes;
+                App.processes = cached.length > 0 ? cached : [];
             }
         } catch (error) {
             console.error('Error loading processes:', error);
-            // Загружаем из кэша при ошибке
             const cached = await DB.getCachedProcesses();
             App.processes = cached.length > 0 ? cached : [];
+        }
+    },
+
+    async loadObjects() {
+        try {
+            if (navigator.onLine) {
+                const objects = await API.getObjects();
+                App.objects = objects;
+                await DB.cacheObjects(objects);
+            } else {
+                const cached = await DB.getCachedObjects();
+                App.objects = cached.length > 0 ? cached : [];
+            }
+        } catch (error) {
+            console.error('Error loading objects:', error);
+            const cached = await DB.getCachedObjects();
+            App.objects = cached.length > 0 ? cached : [];
+        }
+    },
+
+    async loadAssignments() {
+        try {
+            if (navigator.onLine) {
+                const assignments = await API.getAssignments();
+                App.assignments = assignments;
+                await DB.cacheAssignments(assignments);
+            } else {
+                const cached = await DB.getCachedAssignments();
+                App.assignments = cached.length > 0 ? cached : [];
+            }
+        } catch (error) {
+            console.error('Error loading assignments:', error);
+            const cached = await DB.getCachedAssignments();
+            App.assignments = cached.length > 0 ? cached : [];
         }
     },
 
@@ -845,10 +1149,19 @@ const Actions = {
         if (activeRecord) {
             App.activeRecord = activeRecord;
             App.activeProcess = App.processes.find(p => p.id === activeRecord.processId);
-            
+            App.activeObject = activeRecord.objectId ? App.objects.find(o => o.id === activeRecord.objectId) : null;
+
             // Загружаем завершенные шаги
             App.completedSteps = await DB.getCompletedSteps(activeRecord.id);
             App.currentStepIndex = App.completedSteps.length;
+
+            // Восстанавливаем время текущего шага
+            if (App.activeProcess?.is_sequential && App.activeProcess?.steps?.length > 0) {
+                if (App.currentStepIndex < App.activeProcess.steps.length) {
+                    App.currentStepStartTime = activeRecord.currentStepStartTime || new Date().toISOString();
+                    UI.startStepTimer();
+                }
+            }
 
             UI.updateActiveProcess();
             UI.startTimer();
@@ -867,7 +1180,6 @@ const Actions = {
                 document.getElementById('register-form').classList.toggle('hidden', tabName !== 'register');
                 document.getElementById('pending-status').classList.add('hidden');
 
-                // Очищаем сообщения об ошибках
                 document.getElementById('login-error').classList.add('hidden');
                 document.getElementById('register-error').classList.add('hidden');
                 document.getElementById('register-success').classList.add('hidden');
@@ -875,28 +1187,18 @@ const Actions = {
         });
 
         // Авторизация
-        document.getElementById('login-btn')?.addEventListener('click', () => {
-            this.login();
-        });
-
+        document.getElementById('login-btn')?.addEventListener('click', () => this.login());
         document.getElementById('login-password')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.login();
-            }
+            if (e.key === 'Enter') this.login();
         });
 
         // Регистрация
-        document.getElementById('register-btn')?.addEventListener('click', () => {
-            this.register();
-        });
-
+        document.getElementById('register-btn')?.addEventListener('click', () => this.register());
         document.getElementById('register-password-confirm')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.register();
-            }
+            if (e.key === 'Enter') this.register();
         });
 
-        // Назад к входу (из статуса ожидания)
+        // Назад к входу
         document.getElementById('back-to-login-btn')?.addEventListener('click', () => {
             document.getElementById('pending-status').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
@@ -905,18 +1207,13 @@ const Actions = {
         });
 
         // Выход
-        document.getElementById('logout-btn')?.addEventListener('click', () => {
-            this.logout();
-        });
+        document.getElementById('logout-btn')?.addEventListener('click', () => this.logout());
 
         // Остановка процесса
-        document.getElementById('stop-process-btn')?.addEventListener('click', () => {
-            this.showStopDialog();
-        });
+        document.getElementById('stop-process-btn')?.addEventListener('click', () => this.showStopDialog());
 
         // Добавление фото
         document.getElementById('add-photo-btn')?.addEventListener('click', () => {
-            // Для многошаговых процессов добавляем фото к текущему шагу
             if (App.activeProcess?.is_sequential && App.activeProcess?.steps) {
                 const currentStep = App.activeProcess.steps[App.currentStepIndex];
                 if (currentStep) {
@@ -927,25 +1224,22 @@ const Actions = {
             this.addPhoto();
         });
 
-        // Завершение текущего шага (кнопка в основном блоке)
-        document.getElementById('complete-step-btn')?.addEventListener('click', () => {
-            this.completeCurrentStep();
-        });
+        // Завершение текущего шага
+        document.getElementById('complete-step-btn')?.addEventListener('click', () => this.completeCurrentStep());
 
-        // Модальное окно завершения процесса
-        document.getElementById('confirm-finish-btn')?.addEventListener('click', () => {
-            this.confirmStopProcess();
-        });
-
-        document.getElementById('cancel-finish-btn')?.addEventListener('click', () => {
-            this.hideStopDialog();
-        });
-
-        // Закрытие модалки по клику на фон
+        // Модальное окно
+        document.getElementById('confirm-finish-btn')?.addEventListener('click', () => this.confirmStopProcess());
+        document.getElementById('cancel-finish-btn')?.addEventListener('click', () => this.hideStopDialog());
         document.getElementById('finish-modal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'finish-modal') {
-                this.hideStopDialog();
-            }
+            if (e.target.id === 'finish-modal') this.hideStopDialog();
+        });
+
+        // Сворачиваемая секция "Свободный запуск"
+        document.getElementById('free-processes-header')?.addEventListener('click', () => {
+            const header = document.getElementById('free-processes-header');
+            const body = document.getElementById('free-processes-body');
+            header.classList.toggle('collapsed');
+            body.classList.toggle('collapsed');
         });
     },
 
@@ -967,7 +1261,6 @@ const Actions = {
             const result = await API.login(username, password);
 
             if (!result.ok) {
-                // Проверяем статус pending
                 if (result.status === 'pending') {
                     document.getElementById('login-form').classList.add('hidden');
                     document.getElementById('register-form').classList.add('hidden');
@@ -979,7 +1272,6 @@ const Actions = {
                 return;
             }
 
-            // Успешная авторизация
             App.authToken = result.token;
             localStorage.setItem('userToken', result.token);
 
@@ -1049,16 +1341,13 @@ const Actions = {
                 return;
             }
 
-            // Успешная регистрация
             successDiv.textContent = result.message || 'Регистрация успешна. Ожидайте подтверждения администратором.';
             successDiv.classList.remove('hidden');
 
-            // Очищаем поля
             usernameInput.value = '';
             nameInput.value = '';
             passwordInput.value = '';
             confirmInput.value = '';
-
         } catch (error) {
             console.error('Register error:', error);
             errorDiv.textContent = 'Ошибка подключения к серверу';
@@ -1073,7 +1362,6 @@ const Actions = {
             }
         }
 
-        // Отправляем запрос на выход
         try {
             await API.request('/api/auth/logout', { method: 'POST' });
         } catch (error) {
@@ -1085,18 +1373,46 @@ const Actions = {
         localStorage.removeItem('userToken');
         App.activeProcess = null;
         App.activeRecord = null;
+        App.activeAssignment = null;
+        App.activeObject = null;
         App.currentStepIndex = 0;
         App.completedSteps = [];
+        App.stepTimings = [];
+        App.currentStepStartTime = null;
+        App.currentStepTimingId = null;
 
         UI.stopTimer();
+        UI.stopStepTimer();
         UI.showScreen('auth-screen');
 
-        // Очищаем форму
         document.getElementById('login-username').value = '';
         document.getElementById('login-password').value = '';
         document.getElementById('login-error').classList.add('hidden');
     },
 
+    // Запуск из назначения
+    async startFromAssignment(assignmentId) {
+        if (App.activeProcess) {
+            alert('Сначала завершите текущий процесс');
+            return;
+        }
+
+        const assignment = App.assignments.find(a => a.id === assignmentId);
+        if (!assignment) return;
+
+        const process = App.processes.find(p => p.id === assignment.process_id);
+        if (!process) {
+            alert('Процесс не найден');
+            return;
+        }
+
+        App.activeAssignment = assignment;
+        App.activeObject = assignment.object_id ? App.objects.find(o => o.id === assignment.object_id) : null;
+
+        await this.doStartProcess(process, App.activeObject?.id, assignmentId);
+    },
+
+    // Свободный запуск процесса
     async startProcess(processId) {
         if (App.activeProcess) {
             alert('Сначала завершите текущий процесс');
@@ -1106,14 +1422,37 @@ const Actions = {
         const process = App.processes.find(p => p.id === processId);
         if (!process) return;
 
+        // Получаем выбранный объект
+        const objectSelect = document.getElementById('object-select');
+        const objectId = objectSelect?.value ? parseInt(objectSelect.value) : null;
+
+        if (objectId) {
+            App.activeObject = App.objects.find(o => o.id === objectId);
+        } else {
+            App.activeObject = null;
+        }
+
+        await this.doStartProcess(process, objectId, null);
+    },
+
+    // Общая логика запуска процесса
+    async doStartProcess(process, objectId, assignmentId) {
         App.activeProcess = process;
         App.currentStepIndex = 0;
         App.completedSteps = [];
+        App.stepTimings = [];
+        App.currentStepStartTime = null;
+        App.currentStepTimingId = null;
 
-        const record = {
+        const startTime = new Date().toISOString();
+
+        // Создаем локальную запись
+        const localRecord = {
             userId: App.user.id,
-            processId: processId,
-            startTime: new Date().toISOString(),
+            processId: process.id,
+            objectId: objectId,
+            assignmentId: assignmentId,
+            startTime: startTime,
             endTime: null,
             duration: 0,
             comment: '',
@@ -1121,13 +1460,40 @@ const Actions = {
             stepsCompleted: 0
         };
 
-        const recordId = await DB.addRecord(record);
-        App.activeRecord = { id: recordId, ...record };
+        const localRecordId = await DB.addRecord(localRecord);
+        App.activeRecord = { id: localRecordId, ...localRecord };
+
+        // Если онлайн, создаем запись на сервере
+        if (navigator.onLine) {
+            try {
+                const serverRecord = await API.startRecord(process.id, objectId, assignmentId);
+                App.activeRecord.serverId = serverRecord.id;
+                await DB.updateRecord(localRecordId, { serverId: serverRecord.id, synced: true });
+
+                // Если процесс с шагами, начинаем тайминг первого шага
+                if (process.is_sequential && process.steps && process.steps.length > 0) {
+                    const firstStep = process.steps[0];
+                    const stepTiming = await API.startStepTiming(serverRecord.id, firstStep.id);
+                    App.currentStepTimingId = stepTiming.id;
+                    App.currentStepStartTime = new Date().toISOString();
+                    await DB.updateRecord(localRecordId, { currentStepStartTime: App.currentStepStartTime });
+                    UI.startStepTimer();
+                }
+            } catch (error) {
+                console.error('Error creating server record:', error);
+            }
+        } else {
+            // Оффлайн: сохраняем время начала шага локально
+            if (process.is_sequential && process.steps && process.steps.length > 0) {
+                App.currentStepStartTime = new Date().toISOString();
+                await DB.updateRecord(localRecordId, { currentStepStartTime: App.currentStepStartTime });
+                UI.startStepTimer();
+            }
+        }
 
         UI.updateActiveProcess();
         UI.startTimer();
 
-        // Прокручиваем к активному процессу
         document.getElementById('active-process')?.scrollIntoView({ behavior: 'smooth' });
     },
 
@@ -1150,24 +1516,53 @@ const Actions = {
             }
         }
 
-        // Сохраняем завершение шага
+        // Останавливаем таймер шага на сервере
+        if (navigator.onLine && App.currentStepTimingId) {
+            try {
+                await API.stopStepTiming(App.currentStepTimingId);
+            } catch (error) {
+                console.error('Error stopping step timing:', error);
+            }
+        }
+
+        // Сохраняем завершение шага локально
         const stepCompletion = {
             recordId: App.activeRecord.id,
             stepId: currentStep.id,
-            completedAt: new Date().toISOString()
+            completedAt: new Date().toISOString(),
+            duration: App.currentStepStartTime ? Utils.getCurrentTimer(App.currentStepStartTime) : 0
         };
 
         await DB.addStepCompletion(stepCompletion);
         App.completedSteps.push(stepCompletion);
         App.currentStepIndex++;
 
-        // Обновляем весь UI активного процесса (включая текущий шаг)
+        // Если есть следующий шаг, начинаем его тайминг
+        if (App.currentStepIndex < process.steps.length) {
+            const nextStep = process.steps[App.currentStepIndex];
+            App.currentStepStartTime = new Date().toISOString();
+
+            if (navigator.onLine && App.activeRecord.serverId) {
+                try {
+                    const stepTiming = await API.startStepTiming(App.activeRecord.serverId, nextStep.id);
+                    App.currentStepTimingId = stepTiming.id;
+                } catch (error) {
+                    console.error('Error starting next step timing:', error);
+                }
+            }
+
+            await DB.updateRecord(App.activeRecord.id, { currentStepStartTime: App.currentStepStartTime });
+        } else {
+            // Все шаги выполнены
+            App.currentStepStartTime = null;
+            App.currentStepTimingId = null;
+            UI.stopStepTimer();
+        }
+
         UI.updateActiveProcess();
 
-        // Если все шаги завершены, предлагаем завершить процесс
         if (App.currentStepIndex >= process.steps.length) {
             this.showNotification('Все шаги выполнены!', 'success');
-            // Автоматически открываем диалог завершения
             setTimeout(() => this.showStopDialog(), 1000);
         }
     },
@@ -1181,13 +1576,12 @@ const Actions = {
         const durationEl = document.getElementById('finish-duration');
         const commentInput = document.getElementById('comment-input');
 
-        // Показываем информацию в модальном окне
         processNameEl.textContent = process.name;
         const currentDuration = Utils.getCurrentTimer(App.activeRecord.startTime);
         durationEl.textContent = Utils.formatDuration(currentDuration);
         commentInput.value = '';
 
-        // Добавляем предупреждение о невыполненных шагах
+        // Предупреждение о невыполненных шагах
         let warningEl = modal.querySelector('.steps-warning');
         if (warningEl) warningEl.remove();
 
@@ -1200,13 +1594,11 @@ const Actions = {
             modal.querySelector('.modal-content').insertBefore(warningEl, commentInput);
         }
 
-        // Показываем модальное окно
         modal.classList.remove('hidden');
     },
 
     hideStopDialog() {
-        const modal = document.getElementById('finish-modal');
-        modal.classList.add('hidden');
+        document.getElementById('finish-modal').classList.add('hidden');
     },
 
     async confirmStopProcess() {
@@ -1215,56 +1607,68 @@ const Actions = {
         const commentInput = document.getElementById('comment-input');
         const comment = commentInput.value.trim();
 
-        // Скрываем модальное окно
         this.hideStopDialog();
-
-        // Завершаем процесс
         await this.stopProcess(comment);
     },
 
     async stopProcess(comment) {
         if (!App.activeProcess || !App.activeRecord) return;
 
+        // Останавливаем текущий тайминг шага если есть
+        if (navigator.onLine && App.currentStepTimingId) {
+            try {
+                await API.stopStepTiming(App.currentStepTimingId);
+            } catch (error) {
+                console.error('Error stopping step timing:', error);
+            }
+        }
+
         const endTime = new Date();
         const duration = Math.floor((endTime - new Date(App.activeRecord.startTime)) / 1000);
 
-        const updatedRecord = await DB.updateRecord(App.activeRecord.id, {
+        // Обновляем локальную запись
+        await DB.updateRecord(App.activeRecord.id, {
             endTime: endTime.toISOString(),
             duration: duration,
             comment: comment,
             stepsCompleted: App.completedSteps.length
         });
 
-        // Синхронизация с сервером если онлайн
-        if (navigator.onLine) {
-            await API.syncRecord(updatedRecord);
+        // Синхронизация с сервером
+        if (navigator.onLine && App.activeRecord.serverId) {
+            try {
+                await API.stopRecord(App.activeRecord.serverId, comment);
+            } catch (error) {
+                console.error('Error stopping server record:', error);
+            }
         }
 
         // Сброс состояния
         App.activeProcess = null;
         App.activeRecord = null;
+        App.activeAssignment = null;
+        App.activeObject = null;
         App.currentStepIndex = 0;
         App.completedSteps = [];
+        App.stepTimings = [];
+        App.currentStepStartTime = null;
+        App.currentStepTimingId = null;
 
         UI.stopTimer();
+        UI.stopStepTimer();
         UI.hideElement('active-process');
         UI.hideElement('steps-container');
 
-        // Обновляем историю и статистику
         UI.renderHistory();
         UI.renderStats();
 
-        // Показываем уведомление
         this.showNotification('Процесс успешно завершён!', 'success');
     },
 
     showNotification(message, type = 'info') {
-        // Создаем элемент уведомления
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <span>${message}</span>
-        `;
+        notification.innerHTML = `<span>${message}</span>`;
         notification.style.cssText = `
             position: fixed;
             bottom: 24px;
@@ -1282,7 +1686,6 @@ const Actions = {
 
         document.body.appendChild(notification);
 
-        // Удаляем через 3 секунды
         setTimeout(() => {
             notification.style.animation = 'fadeOut 0.3s ease-out';
             setTimeout(() => notification.remove(), 300);
@@ -1293,17 +1696,17 @@ const Actions = {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'environment'; // Камера заднего вида на мобильных
+        input.capture = 'environment';
 
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Конвертируем в base64
             const reader = new FileReader();
             reader.onload = async (event) => {
                 const base64 = event.target.result;
 
+                // Сохраняем локально
                 const photo = {
                     recordId: App.activeRecord.id,
                     stepId: stepId,
@@ -1312,9 +1715,18 @@ const Actions = {
                 };
 
                 await DB.addPhoto(photo);
-                alert('Фото добавлено!');
 
-                // Если фото для шага, обновляем отображение шагов
+                // Отправляем на сервер если онлайн
+                if (navigator.onLine && App.activeRecord.serverId) {
+                    try {
+                        await API.uploadPhoto(App.activeRecord.serverId, base64, stepId);
+                    } catch (error) {
+                        console.error('Error uploading photo:', error);
+                    }
+                }
+
+                this.showNotification('Фото добавлено!', 'success');
+
                 if (stepId && App.activeProcess?.is_sequential) {
                     UI.renderSteps(App.activeProcess, App.completedSteps.map(s => s.stepId));
                 }
@@ -1327,7 +1739,6 @@ const Actions = {
     },
 
     async syncData() {
-        // Синхронизация несинхронизированных записей
         if (!App.user) return;
 
         const records = await DB.getRecords(App.user.id, 100);
@@ -1343,6 +1754,10 @@ const Actions = {
         if (unsyncedRecords.length > 0) {
             console.log(`Синхронизировано записей: ${unsyncedRecords.length}`);
         }
+
+        // Перезагружаем данные
+        await this.loadAssignments();
+        UI.renderAssignments();
     }
 };
 
